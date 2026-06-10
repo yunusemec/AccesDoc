@@ -19,7 +19,8 @@ async function complete(system: string, user: string): Promise<string> {
   });
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const data = await response.json() as any;
-  return data.choices[0]?.message?.content?.trim() ?? '';
+  console.log('[openrouter] response:', JSON.stringify(data));
+  return data.choices[0].message.content;
 }
 
 // ── AI Fix ───────────────────────────────────────────────────────────────────
