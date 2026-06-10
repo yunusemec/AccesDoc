@@ -1,20 +1,21 @@
-import Groq from 'groq-sdk';
-
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
-const MODEL = 'llama-3.3-70b-versatile';
-
-// ── Yardımcı: tek seferlik tamamlama ─────────────────────────────────────────
+// ── Yardımcı: tek seferlik tamamlama (OpenRouter) ────────────────────────────
 async function complete(systemPrompt: string, userPrompt: string): Promise<string> {
-  const chat = await groq.chat.completions.create({
-    model: MODEL,
-    messages: [
-      { role: 'system', content: systemPrompt },
-      { role: 'user',   content: userPrompt   },
-    ],
-    temperature: 0.3,
-    max_tokens: 4096,
+  const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'meta-llama/llama-3.3-70b-instruct:free',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user',   content: userPrompt   },
+      ],
+    }),
   });
-  return chat.choices[0]?.message?.content?.trim() ?? '';
+  const data = await response.json() as { choices: { message: { content: string } }[] };
+  return data.choices[0]?.message?.content?.trim() ?? '';
 }
 
 // ── AI Fix — erişilebilirlik sorunlarını AI ile düzelt ───────────────────────
@@ -59,7 +60,7 @@ Bu HTML'i eksiksiz düzelt:
 HTML kodu:
 ${originalHtml.slice(0, 12000)}`;
 
-    console.log('[ai] applyAiFixes: Groq isteği gönderiliyor...');
+    console.log('[ai] applyAiFixes: OpenRouter isteği gönderiliyor...');
     let text = await complete(system, user);
 
     // Markdown kod bloğu varsa soy
