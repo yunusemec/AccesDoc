@@ -60,13 +60,18 @@ router.post('/create-checkout', authMiddleware, async (req: AuthRequest, res: Re
       // Mevcut subscription'ı iptal ettikten sonra yeni plan için checkout aç.
       // Bu şekilde kullanıcı ödemeyi Stripe üzerinde onaylar, webhook DB'yi günceller.
       // Stripe'ın önerilen upgrade yöntemi: yeni subscription checkout session'ı
+      const successUrl = process.env.SUCCESS_URL || 'https://accessiscan-sand.vercel.app/payment/success';
+      const cancelUrl  = process.env.CANCEL_URL  || 'https://accessiscan-sand.vercel.app/pricing';
+      console.log('[checkout] success_url:', successUrl);
+      console.log('[checkout] cancel_url:', cancelUrl);
+
       const session = await stripe.checkout.sessions.create({
         customer: customerId,
         payment_method_types: ['card'],
         line_items: [{ price: planConfig.stripePriceId, quantity: 1 }],
         mode: 'subscription',
-        success_url: process.env.SUCCESS_URL || 'https://accessiscan-sand.vercel.app/payment/success',
-        cancel_url: process.env.CANCEL_URL || 'https://accessiscan-sand.vercel.app/pricing',
+        success_url: successUrl,
+        cancel_url: cancelUrl,
         metadata: { userId: user.id, plan: planKey },
         subscription_data: { metadata: { userId: user.id, plan: planKey } },
       });
@@ -79,13 +84,18 @@ router.post('/create-checkout', authMiddleware, async (req: AuthRequest, res: Re
     // ── Yeni subscription — checkout session ─────────────────────────────
     console.log(`[checkout] Yeni subscription — session oluşturuluyor, plan: ${planKey}, userId: ${user.id}`);
 
+    const successUrl = process.env.SUCCESS_URL || 'https://accessiscan-sand.vercel.app/payment/success';
+    const cancelUrl  = process.env.CANCEL_URL  || 'https://accessiscan-sand.vercel.app/pricing';
+    console.log('[checkout] success_url:', successUrl);
+    console.log('[checkout] cancel_url:', cancelUrl);
+
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       payment_method_types: ['card'],
       line_items: [{ price: planConfig.stripePriceId, quantity: 1 }],
       mode: 'subscription',
-      success_url: `${process.env.CLIENT_URL}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.CLIENT_URL}/payment/cancel`,
+      success_url: successUrl,
+      cancel_url: cancelUrl,
       metadata: { userId: user.id, plan: planKey },
       subscription_data: { metadata: { userId: user.id, plan: planKey } },
     });
