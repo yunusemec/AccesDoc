@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html>
+<!-- HATA 1: lang attribute eksik -->
+<!-- HATA 2: <title> yok -->
+<head>
+  <meta charset="UTF-8">
+  <!-- HATA 3: viewport meta eksik -->
+
+  <style>
+    /* ─── CSS ERİŞİLEBİLİRLİK HATALARI ─────────────────────────────── */
+
+    /* HATA CSS-1: cursor: none — işaretçiyi tamamen gizliyor */
+    body {
+      cursor: none;
+      margin: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #ffffff;
+    }
+
+    /* HATA CSS-2: font-size 9px — okunaksız küçük metin */
+    .fine-print {
+      font-size: 9px;
+      color: #555;
+      line-height: 1.4;
+    }
+
+    /* HATA CSS-3: font-size 10px — yine çok küçük */
+    .disclaimer {
+      font-size: 10px;
+      margin-top: 4px;
+    }
+
+    /* HATA CSS-4: outline: none — klavye navigasyonu için focus görünmez */
+    button:focus,
+    a:focus,
+    input:focus {
+      outline: none;
+    }
+
+    /* HATA CSS-5: Düşük kontrastlı renk — #cccccc metin beyaz arka planda */
+    .subtitle {
+      color: #cccccc;
+      background-color: #ffffff;
+      font-size: 18px;
+    }
+
+    /* HATA CSS-6: display: none ile gizlenmiş erişilebilir içerik */
+    .screen-reader-text {
+      display: none;
+    }
+
+    /* HATA CSS-7: visibility: hidden ile saklı içerik */
+    .hidden-nav {
+      visibility: hidden;
+      position: absolute;
+      top: 0;
+    }
+
+    /* ─── GENEL STİLLER ──────────────────────────────────────────────── */
+    * { box-sizing: border-box; }
+
+    nav {
+      background: #1a1a2e;
+      padding: 0 40px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 64px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .nav-logo {
+      color: #00d4ff;
+      font-size: 22px;
+      font-weight: 700;
+      text-decoration: none;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 32px;
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+
+    .nav-links a {
+      color: #e0e0e0;
+      text-decoration: none;
+      font-size: 14px;
+      transition: color 0.2s;
+    }
+
+    .nav-links a:hover { color: #00d4ff; }
+
+    .nav-cta {
+      background: #00d4ff;
+      color: #0a0a1a;
+      border: none;
+      padding: 10px 24px;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    /* Hero */
+    .hero {
+      background: linear-gradient(135deg, #0a0a1a 0%, #1a1a3e 50%, #0a1628 100%);
+      color: #fff;
+      padding: 100px 40px;
+      text-align: center;
+      min-height: 520px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .hero h1 {
+      font-size: 52px;
+      font-weight: 800;
+      margin: 0 0 16px;
+      background: linear-gradient(90deg, #00d4ff, #a855f7);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero-buttons {
+      display: flex;
+      gap: 16px;
+      margin-top: 32px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .btn-primary {
+      background: #00d4ff;
+      color: #0a0a1a;
+      border: none;
+      padding: 14px 32px;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .btn-secondary {
+      background: transparent;
+      color: #fff;
+      border: 2px solid rgba(255,255,255,0.3);
+      padding: 14px 32px;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    /* Services */
+    .services {
+      padding: 80px 40px;
+      background: #f8fafc;
+    }
+
+    .services-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 24px;
+      max-width: 1200px;
+      margin: 40px auto 0;
+    }
+
+    .service-card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 32px;
+      box-shadow: 0 2px 16px rgba(0,0,0,0.08);
+    }
+
+    .service-card h5 {
+      font-size: 20px;
+      margin: 12px 0 8px;
+      color: #1a1a2e;
+    }
+
+    .service-card p { color: #64748b; line-height: 1.6; }
+
+    .service-icon {
+      width: 56px;
+      height: 56px;
+      border-radius: 12px;
+      background: #e0f7ff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+    }
+
+    /* Stats */
+    .stats {
+      background: #1a1a2e;
+      color: #fff;
+      padding: 60px 40px;
+      display: flex;
+      justify-content: center;
+      gap: 80px;
+      flex-wrap: wrap;
+    }
+
+    .stat-item { text-align: center; }
+    .stat-number { font-size: 48px; font-weight: 800; color: #00d4ff; }
+    .stat-label { color: #94a3b8; margin-top: 4px; }
+
+    /* Team */
+    .team {
+      padding: 80px 40px;
+      text-align: center;
+      background: #fff;
+    }
+
+    .team-grid {
+      display: flex;
+      gap: 32px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-top: 40px;
+    }
+
+    .team-card {
+      width: 200px;
+      text-align: center;
+    }
+
+    .team-card img {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      object-fit: cover;
+      background: #e2e8f0;
+    }
+
+    .team-card h5 {
+      margin: 12px 0 4px;
+      color: #1a1a2e;
+    }
+
+    /* Pricing table */
+    .pricing {
+      padding: 80px 40px;
+      background: #f0f4ff;
+      text-align: center;
+    }
+
+    .pricing table {
+      width: 100%;
+      max-width: 800px;
+      margin: 40px auto 0;
+      border-collapse: collapse;
+      background: #fff;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 2px 16px rgba(0,0,0,0.08);
+    }
+
+    .pricing table td, .pricing table th {
+      padding: 16px 24px;
+      text-align: left;
+      border-bottom: 1px solid #e2e8f0;
+    }
+
+    /* Contact form */
+    .contact {
+      padding: 80px 40px;
+      max-width: 640px;
+      margin: 0 auto;
+    }
+
+    .form-group { margin-bottom: 20px; }
+
+    .form-group input,
+    .form-group textarea,
+    .form-group select {
+      width: 100%;
+      padding: 12px 16px;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      font-size: 14px;
+      font-family: inherit;
+    }
+
+    .form-group textarea { height: 120px; resize: vertical; }
+
+    .submit-btn {
+      background: #a855f7;
+      color: #fff;
+      border: none;
+      padding: 14px 40px;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      width: 100%;
+    }
+
+    /* Footer */
+    footer {
+      background: #0a0a1a;
+      color: #94a3b8;
+      padding: 48px 40px;
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 32px;
+    }
+
+    footer a { color: #94a3b8; text-decoration: none; }
+    footer a:hover { color: #00d4ff; }
+
+    .footer-col h5 { color: #e2e8f0; margin-bottom: 16px; }
+
+    .footer-links {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .section-title {
+      font-size: 36px;
+      font-weight: 700;
+      color: #1a1a2e;
+      text-align: center;
+    }
+
+    .badge {
+      display: inline-block;
+      background: #e0f7ff;
+      color: #0284c7;
+      border-radius: 999px;
+      padding: 4px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- HATA 4: Skip navigation yok -->
+
+  <!-- ── NAVBAR ──────────────────────────────────────────────────────── -->
+  <nav>
+    <a href="#" class="nav-logo">TechCorp</a>
+    <ul class="nav-links">
+      <li><a href="#services">Hizmetler</a></li>
+      <li><a href="#team">Ekip</a></li>
+      <li><a href="#pricing">Fiyatlandırma</a></li>
+      <li><a href="#contact">İletişim</a></li>
+    </ul>
+    <!-- HATA 5: Boş buton — hiç metin veya aria-label yok -->
+    <button class="nav-cta"></button>
+  </nav>
+
+  <!-- ── HERO ───────────────────────────────────────────────────────── -->
+  <section class="hero">
+    <!-- HATA 6: Görselde alt text yok -->
+    <img src="/images/hero-badge.svg" width="60" style="margin-bottom:20px">
+
+    <!-- HATA 7: Başlık hiyerarşisi — sayfada h1 var ama sonra direkt h5'e atlıyor (h2/h3/h4 yok) -->
+    <h1>Yazılım ile Geleceği İnşa Et</h1>
+
+    <p class="subtitle">Kurumsal yazılım çözümleri ile işinizi bir üst seviyeye taşıyın.
+      500+ müşteri, 10 yıllık deneyim.</p>
+
+    <!-- HATA CSS: .subtitle sınıfında color:#cccccc + background:#ffffff → düşük kontrast -->
+
+    <div class="hero-buttons">
+      <button class="btn-primary">Ücretsiz Demo Al</button>
+      <!-- HATA 8: Anlamsız link metni -->
+      <a href="/demo">daha fazla</a>
+    </div>
+
+    <!-- HATA 9: Autoplay + ses açık video -->
+    <video autoplay width="1" height="1" style="position:absolute;opacity:0">
+      <source src="/videos/promo.mp4" type="video/mp4">
+    </video>
+  </section>
+
+  <!-- ── STATS ──────────────────────────────────────────────────────── -->
+  <div class="stats">
+    <div class="stat-item">
+      <div class="stat-number">500+</div>
+      <div class="stat-label">Mutlu Müşteri</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-number">98%</div>
+      <div class="stat-label">Memnuniyet Oranı</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-number">10</div>
+      <div class="stat-label">Yıllık Deneyim</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-number">24/7</div>
+      <div class="stat-label">Destek</div>
+    </div>
+  </div>
+
+  <!-- ── SERVİSLER ─────────────────────────────────────────────────── -->
+  <section id="services" class="services">
+    <span class="badge">Hizmetlerimiz</span>
+    <h3 class="section-title">Kapsamlı Çözümler</h3>
+    <!-- HATA 7 devam: h1 → h3 atladı (h2 kullanılmadı) -->
+
+    <div class="services-grid">
+
+      <div class="service-card">
+        <div class="service-icon">☁️</div>
+        <!-- HATA 7: h3 altında h5 kullanılıyor, h4 atlandı -->
+        <h5>Bulut Altyapısı</h5>
+        <p>AWS, Azure ve GCP üzerinde ölçeklenebilir bulut çözümleri sunuyoruz.</p>
+        <p class="fine-print">* Fiyatlar kullanıma bağlı değişebilir. Detaylı bilgi için iletişime geçin.</p>
+        <!-- HATA CSS-2: fine-print sınıfında font-size 9px -->
+        <!-- HATA 10: "click here" anlamsız link -->
+        <br><a href="/cloud">click here</a>
+      </div>
+
+      <div class="service-card">
+        <div class="service-icon">🔒</div>
+        <h5>Siber Güvenlik</h5>
+        <p>Penetrasyon testleri, güvenlik denetimleri ve 7/24 tehdit izleme.</p>
+        <p class="fine-print">Sertifikalı güvenlik uzmanlarımızla çalışın.</p>
+        <!-- HATA 11: Anlamsız link -->
+        <br><a href="/security">buraya tıkla</a>
+      </div>
+
+      <div class="service-card">
+        <div class="service-icon">📊</div>
+        <h5>Veri Analitiği</h5>
+        <p>Büyük veri işleme, makine öğrenmesi modelleri ve iş zekası dashboardları.</p>
+        <p class="disclaimer">Sonuçlar sektöre ve veri kalitesine göre farklılık gösterebilir.</p>
+        <!-- HATA CSS-3: disclaimer sınıfında font-size 10px -->
+        <br><a href="/analytics">more</a>
+      </div>
+
+      <div class="service-card">
+        <div class="service-icon">🤖</div>
+        <h5>Yapay Zeka Entegrasyonu</h5>
+        <p>GPT, Vision ve özel LLM modellerini iş süreçlerinize entegre ediyoruz.</p>
+        <!-- HATA 12: Boş anchor -->
+        <br><a href="/ai"></a>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ── EKİP ───────────────────────────────────────────────────────── -->
+  <section id="team" class="team">
+    <span class="badge">Ekibimiz</span>
+    <h3 class="section-title">Uzman Kadromuz</h3>
+
+    <div class="team-grid">
+      <div class="team-card">
+        <!-- HATA 13: alt text eksik görseller -->
+        <img src="/images/team-1.jpg">
+        <h5>Ahmet Yılmaz</h5>
+        <p style="color:#64748b;font-size:13px">CEO & Kurucu</p>
+      </div>
+      <div class="team-card">
+        <img src="/images/team-2.jpg">
+        <h5>Elif Demir</h5>
+        <p style="color:#64748b;font-size:13px">CTO</p>
+      </div>
+      <div class="team-card">
+        <img src="/images/team-3.jpg">
+        <h5>Can Öztürk</h5>
+        <p style="color:#64748b;font-size:13px">Güvenlik Direktörü</p>
+      </div>
+      <div class="team-card">
+        <img src="/images/team-4.jpg">
+        <h5>Selin Kaya</h5>
+        <p style="color:#64748b;font-size:13px">Ürün Müdürü</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── FİYATLANDIRMA TABLOSU ─────────────────────────────────────── -->
+  <section id="pricing" class="pricing">
+    <span class="badge">Fiyatlandırma</span>
+    <h3 class="section-title">Şeffaf Fiyatlar</h3>
+
+    <!-- HATA 14: Tabloda caption yok, th yok, scope yok -->
+    <table>
+      <tr>
+        <td>Paket</td>
+        <td>Kullanıcı</td>
+        <td>Depolama</td>
+        <td>Destek</td>
+        <td>Fiyat</td>
+      </tr>
+      <tr>
+        <td>Starter</td>
+        <td>1-5</td>
+        <td>10 GB</td>
+        <td>E-posta</td>
+        <td>₺299/ay</td>
+      </tr>
+      <tr>
+        <td>Professional</td>
+        <td>6-25</td>
+        <td>100 GB</td>
+        <td>7/24 Chat</td>
+        <td>₺899/ay</td>
+      </tr>
+      <tr>
+        <td>Enterprise</td>
+        <td>Sınırsız</td>
+        <td>1 TB</td>
+        <td>Özel Destek</td>
+        <td>Teklif al</td>
+      </tr>
+    </table>
+  </section>
+
+  <!-- ── GİZLİ İÇERİK (CSS hataları) ──────────────────────────────── -->
+  <div class="screen-reader-text">
+    <!-- HATA CSS-6: display:none ile gizlenmiş — ekran okuyucu göremez -->
+    Bu içerik erişilebilir olmalıydı ama display:none ile gizlendi.
+  </div>
+
+  <div class="hidden-nav">
+    <!-- HATA CSS-7: visibility:hidden ile saklı navigasyon -->
+    <a href="#main">Ana içeriğe geç</a>
+  </div>
+
+  <!-- ── İLETİŞİM FORMU ────────────────────────────────────────────── -->
+  <section id="contact" class="contact">
+    <span class="badge">İletişim</span>
+    <h3 class="section-title" style="text-align:left;font-size:28px">Bize Ulaşın</h3>
+
+    <!-- HATA 15-19: Tüm input'ların label'ı yok -->
+    <form>
+      <div class="form-group">
+        <!-- label yok -->
+        <input type="text" name="name" placeholder="Adınız Soyadınız">
+      </div>
+
+      <div class="form-group">
+        <!-- HATA 16: email alanı type="text" olarak tanımlanmış -->
+        <!-- HATA: label yok -->
+        <input type="text" name="email" placeholder="Email adresiniz">
+      </div>
+
+      <div class="form-group">
+        <!-- label yok -->
+        <input type="text" name="phone" placeholder="Telefon numaranız">
+      </div>
+
+      <div class="form-group">
+        <!-- label yok -->
+        <select name="service">
+          <option value="">Hizmet Seçin</option>
+          <option value="cloud">Bulut Altyapısı</option>
+          <option value="security">Siber Güvenlik</option>
+          <option value="analytics">Veri Analitiği</option>
+          <option value="ai">Yapay Zeka</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <!-- label yok -->
+        <textarea name="message" placeholder="Mesajınız..."></textarea>
+      </div>
+
+      <!-- HATA 20: tabindex=-1 ile submit buton klavye navigasyonundan dışlanmış -->
+      <button type="submit" class="submit-btn" tabindex="-1">Gönder</button>
+    </form>
+
+    <!-- HATA: aria-labelledby ile geçersiz id referansı -->
+    <p aria-labelledby="nonexistent-id" style="margin-top:24px;color:#64748b;font-size:13px">
+      Genellikle 1-2 iş günü içinde yanıt veririz. Acil durumlar için
+      <a href="tel:+902121234567">+90 212 123 45 67</a> numaralı hattı arayabilirsiniz.
+    </p>
+  </section>
+
+  <!-- ── FOOTER ─────────────────────────────────────────────────────── -->
+  <footer>
+    <div class="footer-col">
+      <div style="color:#00d4ff;font-size:20px;font-weight:700;margin-bottom:8px">TechCorp</div>
+      <p style="font-size:13px;line-height:1.6;max-width:240px">
+        Yazılım çözümleriyle işletmenizi geleceğe taşıyoruz.
+      </p>
+      <!-- HATA: Boş button -->
+      <button style="background:transparent;border:none;cursor:pointer;margin-top:12px"></button>
+    </div>
+
+    <div class="footer-col">
+      <h5>Hizmetler</h5>
+      <ul class="footer-links">
+        <li><a href="/cloud">Bulut Altyapısı</a></li>
+        <li><a href="/security">Siber Güvenlik</a></li>
+        <li><a href="/analytics">Veri Analitiği</a></li>
+        <li><a href="/ai">Yapay Zeka</a></li>
+      </ul>
+    </div>
+
+    <div class="footer-col">
+      <h5>Şirket</h5>
+      <ul class="footer-links">
+        <li><a href="/about">Hakkımızda</a></li>
+        <li><a href="/blog">Blog</a></li>
+        <li><a href="/careers">Kariyer</a></li>
+        <!-- HATA: Anlamsız link -->
+        <li><a href="/contact">daha fazla</a></li>
+      </ul>
+    </div>
+
+    <div class="footer-col">
+      <h5>Sosyal Medya</h5>
+      <ul class="footer-links">
+        <!-- HATA: Boş anchor tagları -->
+        <li><a href="https://twitter.com/techcorp"></a></li>
+        <li><a href="https://linkedin.com/company/techcorp"></a></li>
+        <li><a href="https://github.com/techcorp"></a></li>
+      </ul>
+    </div>
+  </footer>
+
+  <div style="background:#050510;color:#4a5568;text-align:center;padding:16px;font-size:12px">
+    © 2024 TechCorp Yazılım A.Ş. Tüm hakları saklıdır.
+    <!-- HATA: Çok küçük ve inline font-size -->
+    <span style="font-size:9px;color:#888"> | Gizlilik Politikası | KVKK Aydınlatma Metni</span>
+  </div>
+
+</body>
+</html>

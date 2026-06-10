@@ -2,13 +2,23 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import authRouter from './routes/auth';
+import analyzeRouter from './routes/analyze';
+import paymentRouter from './routes/payment';
+import aiRouter from './routes/ai';
 
 const app = express();
 
 app.use(cors({ origin: process.env.CLIENT_URL }));
-app.use(express.json());
+
+// Stripe webhook ham body istiyor — diğer route'lardan önce tanımla
+app.use('/api/payment/webhook', express.raw({ type: 'application/json' }));
+
+app.use(express.json({ limit: '2mb' }));
 
 app.use('/api/auth', authRouter);
+app.use('/api/analyze', analyzeRouter);
+app.use('/api/payment', paymentRouter);
+app.use('/api/ai', aiRouter);
 
 app.get('/health', (_req, res) => res.json({ status: 'ok' }));
 
