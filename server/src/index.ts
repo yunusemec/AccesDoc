@@ -8,7 +8,13 @@ import aiRouter from './routes/ai';
 
 const app = express();
 
-app.use(cors({ origin: process.env.CLIENT_URL }));
+const allowedOrigins = [
+  process.env.CLIENT_URL,
+  'https://accessiscan-sand.vercel.app',
+  'https://accessiscan-api-ccge.onrender.com',
+].filter(Boolean) as string[];
+
+app.use(cors({ origin: allowedOrigins }));
 
 // Stripe webhook ham body istiyor — diğer route'lardan önce tanımla
 app.use('/api/payment/webhook', express.raw({ type: 'application/json' }));
