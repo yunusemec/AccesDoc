@@ -65,8 +65,8 @@ router.post('/create-checkout', authMiddleware, async (req: AuthRequest, res: Re
         payment_method_types: ['card'],
         line_items: [{ price: planConfig.stripePriceId, quantity: 1 }],
         mode: 'subscription',
-        success_url: `${process.env.CLIENT_URL}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${process.env.CLIENT_URL}/payment/cancel`,
+        success_url: process.env.SUCCESS_URL || 'https://accessiscan-sand.vercel.app/payment/success',
+        cancel_url: process.env.CANCEL_URL || 'https://accessiscan-sand.vercel.app/pricing',
         metadata: { userId: user.id, plan: planKey },
         subscription_data: { metadata: { userId: user.id, plan: planKey } },
       });
