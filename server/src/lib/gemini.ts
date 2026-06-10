@@ -1,24 +1,28 @@
-// ── Yardımcı: tek seferlik tamamlama (OpenRouter) ────────────────────────────
-async function complete(systemPrompt: string, userPrompt: string): Promise<string> {
+import fetch from 'node-fetch';
+
+const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || '';
+
+async function complete(system: string, user: string): Promise<string> {
   const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+      'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
       model: 'meta-llama/llama-3.3-70b-instruct:free',
       messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user',   content: userPrompt   },
+        { role: 'system', content: system },
+        { role: 'user',   content: user   },
       ],
     }),
   });
-  const data = await response.json() as { choices: { message: { content: string } }[] };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const data = await response.json() as any;
   return data.choices[0]?.message?.content?.trim() ?? '';
 }
 
-// ── AI Fix — erişilebilirlik sorunlarını AI ile düzelt ───────────────────────
+// ── AI Fix ───────────────────────────────────────────────────────────────────
 export async function applyAiFixes(
   originalHtml: string,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -28,7 +32,6 @@ export async function applyAiFixes(
   try {
     const failed = results.filter((r) => !r.passed);
     if (failed.length === 0) {
-      console.log('[ai] applyAiFixes: tüm kontroller geçti, orijinal HTML döndürülüyor.');
       return injectBaseTag(originalHtml, url);
     }
 
@@ -38,36 +41,13 @@ export async function applyAiFixes(
 
     const system = 'Sen bir web erişilebilirlik uzmanısın. Verilen HTML kodunu WCAG 2.1 standartlarına göre düzeltiyorsun. Sadece düzeltilmiş ham HTML döndürürsün — markdown, açıklama veya kod bloğu kullanmazsın.';
 
-    const user = `Aşağıdaki HTML kodunda şu WCAG 2.1 erişilebilirlik sorunları tespit edildi:
+    const user = `Aşağıdaki HTML kodunda şu WCAG 2.1 erişilebilirlik sorunları tespit edildi:\n\n${issuesList}\n\nBu HTML'i eksiksiz düzelt:\n1. Eksik alt text'leri ekle\n2. Form label'larını ekle\n3. Başlık hiyerarşisini düzelt\n4. lang attribute ekle\n5. title ekle\n6. viewport meta ekle\n7. skip navigation ekle\n8. Boş butonlara text ekle\n9. CSS sorunlarını düzelt\n10. Tablo erişilebilirliğini düzelt\n11. Autoplay kaldır\n12. ARIA referanslarını düzelt\n\nHTML kodu:\n${originalHtml.slice(0, 12000)}`;
 
-${issuesList}
-
-Bu HTML'i eksiksiz düzelt:
-1. Eksik alt text'leri içeriğe göre anlamlı açıklamalarla ekle
-2. Form label'larını uygun şekilde ekle
-3. Başlık hiyerarşisini düzelt (h1→h2→h3 sırası)
-4. Lang attribute ekle (<html lang="tr">)
-5. Title ekle (içeriğe uygun)
-6. Viewport meta ekle
-7. Skip navigation ekle
-8. Boş butonlara ve linklere anlamlı text ekle
-9. CSS sorunlarını düzelt (outline:none → outline: 2px solid #005fcc, font-size küçükse büyüt, cursor:none kaldır)
-10. Tablo erişilebilirliğini düzelt (th, scope, caption ekle)
-11. Autoplay kaldır
-12. ARIA referanslarını düzelt
-13. Diğer tüm tespit edilen sorunları düzelt
-
-HTML kodu:
-${originalHtml.slice(0, 12000)}`;
-
-    console.log('[ai] applyAiFixes: OpenRouter isteği gönderiliyor...');
     let text = await complete(system, user);
 
-    // Markdown kod bloğu varsa soy
     const codeBlock = text.match(/```(?:html)?\s*([\s\S]*?)\s*```/);
     if (codeBlock) text = codeBlock[1].trim();
 
-    console.log('[ai] applyAiFixes: yanıt alındı, uzunluk:', text.length);
     return injectBaseTag(text || originalHtml, url);
   } catch (err) {
     console.error('[ai] applyAiFixes hata:', err instanceof Error ? err.message : err);
@@ -75,7 +55,6 @@ ${originalHtml.slice(0, 12000)}`;
   }
 }
 
-// ── <base> tag enjeksiyonu ────────────────────────────────────────────────────
 function injectBaseTag(html: string, url?: string): string {
   if (!url) return html;
   try {
@@ -94,15 +73,7 @@ function injectBaseTag(html: string, url?: string): string {
   }
 }
 
-// ── AI Insights — analiz sonuçlarına yorum ekle ───────────────────────────────
-interface CheckResult {
-  id: string;
-  title: string;
-  passed: boolean;
-  issues: string[];
-  suggestions: string[];
-}
-
+// ── AI Insights ──────────────────────────────────────────────────────────────
 export interface AiInsights {
   criticalIssues: { issue: string; solution: string }[];
   scoreComment: string;
@@ -110,7 +81,8 @@ export interface AiInsights {
 }
 
 export async function generateAiInsights(
-  results: CheckResult[],
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  results: any[],
   totalScore: number,
   url?: string,
 ): Promise<AiInsights | null> {
@@ -129,46 +101,23 @@ export async function generateAiInsights(
       .map((r) => `- ${r.title}: ${r.issues.slice(0, 2).join('; ')}`)
       .join('\n');
 
-    const system = 'Sen bir web erişilebilirlik uzmanısın. Türkçe, sade ve kısa yanıt verirsin. Teknik jargon kullanmazsın. Yanıtını SADECE geçerli JSON olarak döndürürsün.';
+    const system = 'Sen bir web erişilebilirlik uzmanısın. Türkçe, sade ve kısa yanıt verirsin. Yanıtını SADECE geçerli JSON olarak döndürürsün.';
 
-    const user = `Aşağıdaki WCAG 2.1 analiz sonuçlarına göre değerlendirme yap:
-
-Site: ${url ?? 'HTML kodu'}
-Genel skor: ${totalScore}/100
-Başarısız kontroller:
-${failedSummary}
-
-Şunları yap:
-1. En kritik 3 sorunu özetle (Türkçe, sade dil)
-2. Her sorun için tek cümlelik pratik çözüm öner
-3. Genel bir erişilebilirlik skoru yorumu yap
-
-Yanıtı SADECE geçerli JSON olarak döndür, başka hiçbir şey ekleme:
-{
-  "criticalIssues": [
-    { "issue": "...", "solution": "..." }
-  ],
-  "scoreComment": "...",
-  "generalAdvice": "..."
-}`;
+    const user = `Site: ${url ?? 'HTML kodu'}\nGenel skor: ${totalScore}/100\nBaşarısız kontroller:\n${failedSummary}\n\nYanıtı SADECE geçerli JSON olarak döndür:\n{\n  "criticalIssues": [\n    { "issue": "...", "solution": "..." }\n  ],\n  "scoreComment": "...",\n  "generalAdvice": "..."\n}`;
 
     const text = await complete(system, user);
 
     const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/) ?? text.match(/\{[\s\S]*\}/);
     const jsonStr = jsonMatch ? (jsonMatch[1] ?? jsonMatch[0]) : text;
 
-    const parsed = JSON.parse(jsonStr) as AiInsights;
-    return parsed;
+    return JSON.parse(jsonStr) as AiInsights;
   } catch (err) {
     console.error('[ai] generateAiInsights hata:', err instanceof Error ? err.message : err);
     return null;
   }
 }
 
-// ── Chat — tek seferlik sohbet tamamlama (routes/ai.ts için) ──────────────────
-export async function chatComplete(
-  systemPrompt: string,
-  userMessage: string,
-): Promise<string> {
-  return complete(systemPrompt, userMessage);
+// ── Chat ─────────────────────────────────────────────────────────────────────
+export async function chatComplete(system: string, message: string): Promise<string> {
+  return complete(system, message);
 }
