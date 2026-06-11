@@ -8,6 +8,7 @@ interface User {
   tokens: number;
   subscriptionStatus: string | null;
   subscriptionId: string | null;
+  createdAt?: string;
 }
 
 interface AuthContextType {

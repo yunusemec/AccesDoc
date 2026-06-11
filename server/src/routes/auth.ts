@@ -1,10 +1,14 @@
 import { Router, Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import Stripe from 'stripe';
 import prisma from '../lib/prisma';
 import { authMiddleware, AuthRequest } from '../middleware/auth';
 
 const router = Router();
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '', { apiVersion: '2026-04-22.dahlia' as any });
 
 function signToken(id: string, email: string) {
   return jwt.sign({ id, email }, process.env.JWT_SECRET as string, { expiresIn: '7d' });
@@ -57,6 +61,80 @@ router.get('/me', authMiddleware, async (req: AuthRequest, res: Response): Promi
     return;
   }
   res.json({ user });
+});
+
+// ── PATCH /api/auth/password — şifre değiştir ──────────────────────────────
+router.patch('/password', authMiddleware, async (req: AuthRequest, res: Response): Promise<void> => {
+  const { currentPassword, newPassword } = req.body as { currentPassword?: string; newPassword?: string };
+
+  if (!currentPassword || !newPassword) {
+    res.status(400).json({ error: 'Mevcut ve yeni şifre gereklidir.' });
+    return;
+  }
+  if (newPassword.length < 6) {
+    res.status(400).json({ error: 'Yeni şifre en az 6 karakter olmalıdır.' });
+    return;
+  }
+
+  const user = await prisma.user.findUnique({ where: { id: req.user!.id } });
+  if (!user) {
+    res.status(404).json({ error: 'Kullanıcı bulunamadı.' });
+    return;
+  }
+
+  const valid = await bcrypt.compare(currentPassword, user.password);
+  if (!valid) {
+    res.status(401).json({ error: 'Mevcut şifre yanlış.' });
+    return;
+  }
+
+  const sameAsOld = await bcrypt.compare(newPassword, user.password);
+  if (sameAsOld) {
+    res.status(400).json({ error: 'Yeni şifre eskisinden farklı olmalıdır.' });
+    return;
+  }
+
+  const hashed = await bcrypt.hash(newPassword, 10);
+  await prisma.user.update({ where: { id: user.id }, data: { password: hashed } });
+
+  res.json({ success: true });
+});
+
+// ── DELETE /api/auth/account — hesabı kalıcı sil ───────────────────────────
+router.delete('/account', authMiddleware, async (req: AuthRequest, res: Response): Promise<void> => {
+  const { password } = req.body as { password?: string };
+
+  if (!password) {
+    res.status(400).json({ error: 'Hesabı silmek için şifrenizi girin.' });
+    return;
+  }
+
+  const user = await prisma.user.findUnique({ where: { id: req.user!.id } });
+  if (!user) {
+    res.status(404).json({ error: 'Kullanıcı bulunamadı.' });
+    return;
+  }
+
+  const valid = await bcrypt.compare(password, user.password);
+  if (!valid) {
+    res.status(401).json({ error: 'Şifre yanlış.' });
+    return;
+  }
+
+  // Aktif abonelik varsa Stripe'tan iptal et (best-effort)
+  if (user.subscriptionId) {
+    try {
+      await stripe.subscriptions.cancel(user.subscriptionId);
+    } catch (err) {
+      console.warn('[delete-account] Stripe abonelik iptali başarısız:', err);
+    }
+  }
+
+  // Önce analizleri, sonra kullanıcıyı sil (FK kısıtı)
+  await prisma.analysis.deleteMany({ where: { userId: user.id } });
+  await prisma.user.delete({ where: { id: user.id } });
+
+  res.json({ success: true });
 });
 
 export default router;

@@ -14,6 +14,7 @@ import PaymentSuccess from './pages/PaymentSuccess';
 import PaymentCancel from './pages/PaymentCancel';
 import History from './pages/History';
 import AnalysisDetail from './pages/AnalysisDetail';
+import Account from './pages/Account';
 import Privacy from './pages/Privacy';
 import Terms from './pages/Terms';
 import ParticleBackground from './components/ParticleBackground';
@@ -55,6 +56,14 @@ export default function App() {
           <Route path="/payment/cancel" element={<PaymentCancel />} />
           <Route path="/history" element={<History />} />
           <Route path="/history/:id" element={<AnalysisDetail />} />
+          <Route
+            path="/account"
+            element={
+              <ProtectedRoute>
+                <Account />
+              </ProtectedRoute>
+            }
+          />
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/terms" element={<Terms />} />
           <Route path="/" element={<Landing />} />

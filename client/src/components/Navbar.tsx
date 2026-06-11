@@ -142,10 +142,18 @@ export default function Navbar() {
                 </span>
               </div>
 
-              {/* Email */}
-              <span className="hidden md:block text-sm text-gray-400 max-w-[140px] truncate">
-                {user.email}
-              </span>
+              {/* Email — hesap ayarlarına link */}
+              <Link
+                to="/account"
+                className="btn-hover hidden md:flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-sm text-gray-400 hover:text-white hover:bg-white/5 max-w-[170px]"
+                title="Hesap Ayarları"
+              >
+                <svg width="13" height="13" viewBox="0 0 14 14" fill="none" className="flex-shrink-0">
+                  <circle cx="7" cy="7" r="2" stroke="currentColor" strokeWidth="1.3"/>
+                  <path d="M7 1.5v1M7 11.5v1M12.5 7h-1M2.5 7h-1M10.9 3.1l-.7.7M3.8 10.2l-.7.7M10.9 10.9l-.7-.7M3.8 3.8l-.7-.7" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round"/>
+                </svg>
+                <span className="truncate">{user.email}</span>
+              </Link>
 
               {/* Logout — masaüstü */}
               <button
@@ -189,11 +197,20 @@ export default function Navbar() {
                 >
                   <div className="max-w-6xl mx-auto px-4 py-3 flex flex-col gap-1">
 
-                    {/* Email */}
-                    <div className="px-3 py-2.5 rounded-lg bg-white/3 border border-white/5 mb-1">
-                      <p className="text-[10px] text-gray-600 mb-0.5">Hesap</p>
-                      <p className="text-sm text-gray-300 truncate">{user.email}</p>
-                    </div>
+                    {/* Email — hesap ayarlarına link */}
+                    <Link
+                      to="/account"
+                      onClick={() => setMenuOpen(false)}
+                      className="btn-hover flex items-center justify-between px-3 py-2.5 rounded-lg bg-white/3 border border-white/5 mb-1"
+                    >
+                      <div className="min-w-0">
+                        <p className="text-[10px] text-gray-600 mb-0.5">Hesap Ayarları</p>
+                        <p className="text-sm text-gray-300 truncate">{user.email}</p>
+                      </div>
+                      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="flex-shrink-0 text-gray-500">
+                        <path d="M5 3l4 4-4 4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    </Link>
 
                     {/* Plan badge */}
                     <Link
