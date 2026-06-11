@@ -1,4 +1,4 @@
-﻿import { useState, useRef, useEffect, type DragEvent, type ChangeEvent } from 'react';
+import { useState, useRef, useEffect, type DragEvent, type ChangeEvent } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { downloadPdf } from '../lib/downloadPdf';
 import Navbar from '../components/Navbar';
@@ -40,7 +40,7 @@ interface AnalysisResult {
   aiInsights: AiInsights | null;
 }
 
-// â”€â”€ Main page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function Home() {
   const { user, refreshUser } = useAuth();
@@ -59,27 +59,27 @@ export default function Home() {
   const [error, setError]             = useState('');
   const [previewOpen, setPreviewOpen] = useState(false);
 
-  // â”€â”€ DÃ¶nen hero baÅŸlÄ±k â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Dönen hero başlık ──────────────────────────────────────────────────
   const [heroIndex,   setHeroIndex]   = useState(0);
   const [heroVisible, setHeroVisible] = useState(true);
 
   const HERO_TITLES: [string, string][] = [
     ['Web Sitenizi',          'Analiz Edin'],
-    ['EriÅŸilebilirliÄŸi',      'Test Edin'],
-    ['WCAG UyumluluÄŸunu',     'Ã–lÃ§Ã¼n'],
-    ['Engelli KullanÄ±cÄ±lara', 'KapÄ± AÃ§Ä±n'],
-    ['Sitenizi Herkes Ä°Ã§in',  'EriÅŸilebilir YapÄ±n'],
-    ['Dijital KapsayÄ±cÄ±lÄ±ÄŸÄ±', 'ArtÄ±rÄ±n'],
+    ['Erişilebilirliği',      'Test Edin'],
+    ['WCAG Uyumluluğunu',     'Ölçün'],
+    ['Engelli Kullanıcılara', 'Kapı Açın'],
+    ['Sitenizi Herkes İçin',  'Erişilebilir Yapın'],
+    ['Dijital Kapsayıcılığı', 'Artırın'],
   ];
 
   const LOADING_MESSAGES = [
-    'ğŸŒ Sayfa yÃ¼kleniyor...',
-    'ğŸ” HTML yapÄ±sÄ± analiz ediliyor...',
-    'ğŸ¨ CSS stilleri kontrol ediliyor...',
-    'âŒ¨ï¸ Klavye eriÅŸimi test ediliyor...',
-    'ğŸ‘ï¸ GÃ¶rsel kontrast Ã¶lÃ§Ã¼lÃ¼yor...',
-    'ğŸ“± Mobil uyumluluk kontrol ediliyor...',
-    'ğŸ¤– AI yorumu hazÄ±rlanÄ±yor...',
+    '🌐 Sayfa yükleniyor...',
+    '🔍 HTML yapısı analiz ediliyor...',
+    '🎨 CSS stilleri kontrol ediliyor...',
+    '⌨️ Klavye erişimi test ediliyor...',
+    '👁️ Görsel kontrast ölçülüyor...',
+    '📱 Mobil uyumluluk kontrol ediliyor...',
+    '🤖 AI yorumu hazırlanıyor...',
   ];
 
   useEffect(() => {
@@ -105,7 +105,7 @@ export default function Home() {
 
   function readFile(file: File) {
     if (!file.name.endsWith('.html') && !file.name.endsWith('.htm')) {
-      setError('LÃ¼tfen bir .html dosyasÄ± seÃ§in.');
+      setError('Lütfen bir .html dosyası seçin.');
       return;
     }
     const reader = new FileReader();
@@ -129,13 +129,13 @@ export default function Home() {
     let content: string;
 
     if (tab === 'url') {
-      if (!urlInput.trim()) { setError('LÃ¼tfen bir URL girin.'); return; }
+      if (!urlInput.trim()) { setError('Lütfen bir URL girin.'); return; }
       type = 'url'; content = urlInput.trim();
     } else if (tab === 'html') {
-      if (!htmlInput.trim()) { setError('LÃ¼tfen HTML kod yapÄ±ÅŸtÄ±rÄ±n.'); return; }
+      if (!htmlInput.trim()) { setError('Lütfen HTML kod yapıştırın.'); return; }
       type = 'html'; content = htmlInput.trim();
     } else {
-      if (!fileHtml) { setError('LÃ¼tfen bir HTML dosyasÄ± yÃ¼kleyin.'); return; }
+      if (!fileHtml) { setError('Lütfen bir HTML dosyası yükleyin.'); return; }
       type = 'html'; content = fileHtml;
     }
 
@@ -146,7 +146,7 @@ export default function Home() {
       await refreshUser();
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
-      setError(msg ?? 'Analiz sÄ±rasÄ±nda bir hata oluÅŸtu.');
+      setError(msg ?? 'Analiz sırasında bir hata oluştu.');
     } finally {
       setLoading(false);
     }
@@ -154,8 +154,8 @@ export default function Home() {
 
   const inputTabs: { key: Tab; label: string }[] = [
     { key: 'url',  label: 'URL Gir' },
-    { key: 'html', label: 'HTML YapÄ±ÅŸtÄ±r' },
-    { key: 'file', label: 'Dosya YÃ¼kle' },
+    { key: 'html', label: 'HTML Yapıştır' },
+    { key: 'file', label: 'Dosya Yükle' },
   ];
 
   return (
@@ -191,12 +191,12 @@ export default function Home() {
           {user?.plan === 'PRO' && (
             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-semibold mb-3"
               style={{ boxShadow: '0 0 16px rgba(245,158,11,0.15)' }}>
-              âšœ Pro Plan â€” SÄ±nÄ±rsÄ±z Analiz &amp; Tam WCAG 2.1 KontrolÃ¼
+              ⚜ Pro Plan — Sınırsız Analiz &amp; Tam WCAG 2.1 Kontrolü
             </div>
           )}
 
           <p className="text-gray-400 text-base max-w-lg mx-auto">
-            50 WCAG 2.1 kriteri ile sitenizi tarayÄ±n, sorunlarÄ± tespit edin ve Ã§Ã¶zÃ¼m Ã¶nerileri alÄ±n.
+            50 WCAG 2.1 kriteri ile sitenizi tarayın, sorunları tespit edin ve çözüm önerileri alın.
           </p>
         </div>
 
@@ -239,7 +239,7 @@ export default function Home() {
           {tab === 'html' && (
             <textarea
               value={htmlInput} onChange={(e) => setHtmlInput(e.target.value)}
-              placeholder={'<html>\n  <body>\n    <!-- HTML kodunuzu buraya yapÄ±ÅŸtÄ±rÄ±n -->\n  </body>\n</html>'}
+              placeholder={'<html>\n  <body>\n    <!-- HTML kodunuzu buraya yapıştırın -->\n  </body>\n</html>'}
               rows={10}
               className="w-full bg-[#0a0a0f] border border-[#1e1e2e] rounded-xl px-4 py-3 text-white placeholder-gray-600 text-sm focus:outline-none focus:border-[#00d4ff]/50 focus:ring-1 focus:ring-[#00d4ff]/20 transition-all font-mono resize-y"
             />
@@ -260,14 +260,14 @@ export default function Home() {
               <input ref={fileRef} type="file" accept=".html,.htm" className="hidden" onChange={onFileChange} />
               {fileName ? (
                 <div>
-                  <div className="text-[#39ff14] text-3xl mb-2">âœ“</div>
+                  <div className="text-[#39ff14] text-3xl mb-2">✓</div>
                   <p className="text-white font-medium text-sm">{fileName}</p>
-                  <p className="text-gray-500 text-xs mt-1">DeÄŸiÅŸtirmek iÃ§in tÄ±klayÄ±n</p>
+                  <p className="text-gray-500 text-xs mt-1">Değiştirmek için tıklayın</p>
                 </div>
               ) : (
                 <div>
-                  <div className="text-gray-600 text-4xl mb-3">ğŸ“„</div>
-                  <p className="text-gray-400 text-sm font-medium">HTML dosyanÄ±zÄ± sÃ¼rÃ¼kleyin veya tÄ±klayÄ±n</p>
+                  <div className="text-gray-600 text-4xl mb-3">📄</div>
+                  <p className="text-gray-400 text-sm font-medium">HTML dosyanızı sürükleyin veya tıklayın</p>
                   <p className="text-gray-600 text-xs mt-1">.html, .htm desteklenir</p>
                 </div>
               )}
@@ -282,7 +282,7 @@ export default function Home() {
 
           {tokens === 0 && (
             <div className="mt-3 px-3 py-2 rounded-lg bg-[#8b5cf6]/10 border border-[#8b5cf6]/20 text-[#8b5cf6] text-sm text-center">
-              Token yok â€” Premium'a geÃ§erek devam edebilirsiniz.
+              Token yok — Premium'a geçerek devam edebilirsiniz.
             </div>
           )}
 
@@ -305,11 +305,11 @@ export default function Home() {
                 </svg>
                 {LOADING_MESSAGES[loadingStep]}
               </span>
-            ) : tokens === 0 ? "Token yok, Premium'a geÃ§" : 'Analiz Et'}
+            ) : tokens === 0 ? "Token yok, Premium'a geç" : 'Analiz Et'}
           </button>
         </div>
 
-        {/* â”€â”€ Results â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+        {/* ── Results ─────────────────────────────────────────────────────── */}
         {result && (
           <>
             <PourResults
@@ -325,7 +325,7 @@ export default function Home() {
               }}
             />
 
-            {/* HTML Ã–nizleme â€” kontrol kartlarÄ±nÄ±n altÄ±nda, deÄŸiÅŸmeden */}
+            {/* HTML Önizleme — kontrol kartlarının altında, değişmeden */}
             {previewOpen && (
               <div className="bg-[#12121a] border border-[#1e1e2e] rounded-2xl p-6 mt-4">
                 <HtmlPreview
@@ -343,4 +343,3 @@ export default function Home() {
     </div>
   );
 }
-
