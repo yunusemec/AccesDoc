@@ -116,21 +116,23 @@ function AnimatedWord() {
         }}
       />
 
-      {/* 🖌️ Fırça ikonu — sadece sweep fazında */}
+      {/* SVG fırça ikonu — sadece sweep fazında */}
       {phase === 'sweep' && (
         <span
           className="absolute pointer-events-none select-none"
           style={{
             left: brushX,
             top: '50%',
-            fontSize: 28,
-            transform: 'translate(-40%, -65%) scaleX(-1)',
+            transform: 'translate(-50%, -60%) rotate(-45deg)',
             filter: `drop-shadow(0 0 6px ${color})`,
             zIndex: 20,
-            lineHeight: 1,
+            lineHeight: 0,
           }}
         >
-          🖌️
+          <svg viewBox="0 0 24 24" width="44" height="44" style={{ color }}>
+            <path d="M7 14c-1.66 0-3 1.34-3 3 0 1.31-1.16 2-2 2 .92 1.22 2.49 2 4 2 2.21 0 4-1.79 4-4 0-1.66-1.34-3-3-3z" fill="currentColor"/>
+            <path d="M20.71 4.63l-1.34-1.34a1 1 0 0 0-1.41 0L9 12.25 11.75 15l8.96-8.96a1 1 0 0 0 0-1.41z" fill="currentColor"/>
+          </svg>
         </span>
       )}
     </span>
@@ -301,7 +303,6 @@ export default function Landing() {
             <span className="text-white">Web erişilebilirliğini</span>
             <br />
             <AnimatedWord />
-            <span className="text-white"> ile daha iyi bir web</span>
           </h1>
 
           <p className="text-gray-400 text-base mt-6 mb-10 max-w-xl mx-auto leading-relaxed">
