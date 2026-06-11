@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, type ReactNode } from 'react';
 
 // ── Scroll-reveal hook ────────────────────────────────────────────────────────
 function useScrollReveal(delay = 0) {
@@ -153,19 +153,19 @@ function BigRing({ score }: { score: number }) {
   const label = scoreLabel(score);
 
   const { value: disp, done: filled } = useCountUp(score, 1500, 0);
-  const [sw, setSw] = useState(8);   // stroke-width, animated for pulse
+  const [rot, setRot] = useState(-90);
 
-  // Pulse after fill: stroke-width oscillates 8 → 12 → 8, 2s loop
+  // Slow rotation after fill: full 360° every 10s (like SubRing)
   useEffect(() => {
     if (!filled) return;
     let raf: number;
     const t0 = performance.now();
-    const pulse = (now: number) => {
-      const t = ((now - t0) % 2000) / 2000;
-      setSw(8 + 3.5 * Math.sin(t * Math.PI * 2));
-      raf = requestAnimationFrame(pulse);
+    const spin = (now: number) => {
+      const elapsed = now - t0;
+      setRot(-90 + (elapsed / 10000) * 360);
+      raf = requestAnimationFrame(spin);
     };
-    raf = requestAnimationFrame(pulse);
+    raf = requestAnimationFrame(spin);
     return () => cancelAnimationFrame(raf);
   }, [filled]);
 
@@ -183,21 +183,19 @@ function BigRing({ score }: { score: number }) {
             cx={CX} cy={CY} r={R}
             fill="none"
             stroke="#1a1a2e"
-            style={{ strokeWidth: sw + 2 }}
+            strokeWidth="10"
           />
           {/* Progress arc */}
           <circle
             cx={CX} cy={CY} r={R}
             fill="none"
             stroke={color}
+            strokeWidth="8"
             strokeLinecap="round"
             strokeDasharray={circ}
             strokeDashoffset={offset}
-            transform={`rotate(-90 ${CX} ${CY})`}
-            style={{
-              strokeWidth: sw,
-              filter: `drop-shadow(0 0 ${Math.round(4 + sw * 0.6)}px ${color})`,
-            }}
+            transform={`rotate(${rot} ${CX} ${CY})`}
+            style={{ filter: `drop-shadow(0 0 6px ${color})` }}
           />
         </svg>
 
@@ -524,6 +522,47 @@ function PourSection({
   );
 }
 
+// ── AI kritik sorun kartı (scroll-reveal) ─────────────────────────────────────
+
+function AiIssueCard({ item, index }: { item: AiInsights['criticalIssues'][number]; index: number }) {
+  const { ref, visible } = useScrollReveal(index * 80);
+  return (
+    <div
+      ref={ref}
+      className="bg-red-500/5 border border-red-500/15 rounded-xl p-3"
+      style={{
+        opacity:   visible ? 1 : 0,
+        transform: visible ? 'translateY(0)' : 'translateY(16px)',
+        transition: 'opacity 0.35s ease, transform 0.35s ease',
+      }}
+    >
+      <div className="flex items-start gap-2">
+        <span className="text-red-400 mt-0.5 flex-shrink-0 text-xs">⚠</span>
+        <div>
+          <p className="text-red-300 text-xs font-medium leading-relaxed">{item.issue}</p>
+          <p className="text-gray-400 text-xs mt-1 leading-relaxed">💡 {item.solution}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AiTextLine({ children, delay }: { children: React.ReactNode; delay: number }) {
+  const { ref, visible } = useScrollReveal(delay);
+  return (
+    <div
+      ref={ref}
+      style={{
+        opacity:   visible ? 1 : 0,
+        transform: visible ? 'translateY(0)' : 'translateY(12px)',
+        transition: 'opacity 0.35s ease, transform 0.35s ease',
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
 // ── AI kutusu ─────────────────────────────────────────────────────────────────
 
 function AiBox({ ai }: { ai: AiInsights }) {
@@ -564,20 +603,16 @@ function AiBox({ ai }: { ai: AiInsights }) {
           {ai.criticalIssues.length > 0 && (
             <div className="space-y-2">
               {ai.criticalIssues.map((item, i) => (
-                <div key={i} className="bg-red-500/5 border border-red-500/15 rounded-xl p-3">
-                  <div className="flex items-start gap-2">
-                    <span className="text-red-400 mt-0.5 flex-shrink-0 text-xs">⚠</span>
-                    <div>
-                      <p className="text-red-300 text-xs font-medium leading-relaxed">{item.issue}</p>
-                      <p className="text-gray-400 text-xs mt-1 leading-relaxed">💡 {item.solution}</p>
-                    </div>
-                  </div>
-                </div>
+                <AiIssueCard key={i} item={item} index={i} />
               ))}
             </div>
           )}
-          <p className="text-[#00d4ff] text-xs italic leading-relaxed">{ai.scoreComment}</p>
-          <p className="text-gray-500 text-[11px] leading-relaxed">📌 {ai.generalAdvice}</p>
+          <AiTextLine delay={ai.criticalIssues.length * 80}>
+            <p className="text-[#00d4ff] text-xs italic leading-relaxed">{ai.scoreComment}</p>
+          </AiTextLine>
+          <AiTextLine delay={ai.criticalIssues.length * 80 + 80}>
+            <p className="text-gray-500 text-[11px] leading-relaxed">📌 {ai.generalAdvice}</p>
+          </AiTextLine>
         </div>
       )}
     </div>
