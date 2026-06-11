@@ -47,104 +47,100 @@ function AnimatedWord() {
   const [idx,      setIdx]      = useState(0);
   const [phase,    setPhase]    = useState<'sweep' | 'show' | 'exit'>('sweep');
   const [progress, setProgress] = useState(0);
-  const canvasRef  = useRef<HTMLCanvasElement>(null);
+  const canvasRef    = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLSpanElement>(null);
   const particlesRef = useRef<Particle[]>([]);
-  const lastProgressRef = useRef(0);
 
+  // Tek birleşik döngü: sweep + partikül üretimi + canvas çizimi
   useEffect(() => {
     setProgress(0);
     setPhase('sweep');
     particlesRef.current = [];
-    lastProgressRef.current = 0;
 
+    const canvas    = canvasRef.current;
+    const container = containerRef.current;
+    if (!canvas || !container) return;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const PAD = 70;
+    const w   = container.offsetWidth;
+    const h   = container.offsetHeight;
+    // Canvas boyutunu bir kez ayarla — reset etme
+    canvas.width  = w + PAD * 2;
+    canvas.height = h + PAD * 2;
+
+    const color   = COLORS[idx];
+    const LIFE    = 650;
     let raf: number;
-    const t0 = performance.now();
+    const t0      = performance.now();
+    let swept     = false;
 
-    const sweep = (now: number) => {
+    const loop = (now: number) => {
       const p = Math.min((now - t0) / SWEEP_MS, 1);
       setProgress(p);
 
-      // Partikül üret: ilerleme farkı > 0.008 ise
-      const canvas    = canvasRef.current;
-      const container = containerRef.current;
-      if (canvas && container && p - lastProgressRef.current > 0.008) {
-        const w = container.offsetWidth;
-        const h = container.offsetHeight;
-        const PAD = 60; // canvas her yana 60px taşsın
-        canvas.width  = w + PAD * 2;
-        canvas.height = h + PAD * 2;
-        const bx = p * w + PAD;       // offset edilmiş fırça X
-        const by = h * 0.5 + PAD;    // offset edilmiş fırça Y
-        const count = Math.floor(Math.random() * 4) + 6; // 6-9 partikül
+      // Her frame 2-3 partikül üret (fırça hareket ederken sürekli)
+      if (p < 1) {
+        const bx = p * w + PAD;
+        const by = h * 0.5 + PAD;
+        const count = 2 + Math.floor(Math.random() * 2);
         for (let i = 0; i < count; i++) {
           const angle = Math.random() * Math.PI * 2;
-          const speed = Math.random() * 3 + 1;
+          const speed = Math.random() * 2.8 + 0.8;
           particlesRef.current.push({
             x: bx, y: by,
             vx: Math.cos(angle) * speed,
-            vy: Math.sin(angle) * speed - 1.5,
-            r: Math.random() * 2.5 + 1.5,
+            vy: Math.sin(angle) * speed - 1.6,
+            r: Math.random() * 2.2 + 1.2,
             opacity: 1,
             born: now,
           });
         }
-        lastProgressRef.current = p;
       }
 
-      if (p < 1) {
-        raf = requestAnimationFrame(sweep);
-        return;
+      // Canvas'ı çiz
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      particlesRef.current = particlesRef.current.filter(pt => now - pt.born < LIFE);
+      for (const pt of particlesRef.current) {
+        const age   = now - pt.born;
+        pt.opacity  = 1 - age / LIFE;
+        pt.x       += pt.vx * 0.5;
+        pt.y       += pt.vy * 0.5;
+        pt.vy      += 0.1;
+        ctx.beginPath();
+        ctx.arc(pt.x, pt.y, pt.r, 0, Math.PI * 2);
+        ctx.fillStyle    = color;
+        ctx.globalAlpha  = Math.max(0, pt.opacity);
+        ctx.shadowBlur   = 7;
+        ctx.shadowColor  = color;
+        ctx.fill();
+        ctx.globalAlpha  = 1;
+        ctx.shadowBlur   = 0;
       }
-      setPhase('show');
-      const holdTimer = setTimeout(() => {
-        setPhase('exit');
-        setTimeout(() => {
-          setIdx(i => (i + 1) % WORDS.length);
-        }, EXIT_MS);
-      }, HOLD_MS);
-      return () => clearTimeout(holdTimer);
+
+      // Döngüyü devam ettir
+      if (p < 1 || particlesRef.current.length > 0) {
+        raf = requestAnimationFrame(loop);
+      }
+
+      // Sweep bitince bir kez tetikle
+      if (p >= 1 && !swept) {
+        swept = true;
+        setPhase('show');
+        const hold = setTimeout(() => {
+          setPhase('exit');
+          setTimeout(() => setIdx(i => (i + 1) % WORDS.length), EXIT_MS);
+        }, HOLD_MS);
+        // hold temizlenmez — setIdx sonrası effect yeniden başlar
+        void hold;
+      }
     };
 
-    raf = requestAnimationFrame(sweep);
+    raf = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(raf);
   }, [idx]);
-
-  // Canvas partikül animasyonu
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    let raf: number;
-    const color = COLORS[idx];
-
-    const draw = (now: number) => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      const LIFE = 600;
-      particlesRef.current = particlesRef.current.filter(p => now - p.born < LIFE);
-      for (const p of particlesRef.current) {
-        const age = now - p.born;
-        p.opacity = 1 - age / LIFE;
-        p.x += p.vx * 0.5;
-        p.y += p.vy * 0.5;
-        p.vy += 0.08; // hafif yerçekimi
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-        ctx.fillStyle = color;
-        ctx.globalAlpha = p.opacity;
-        ctx.shadowBlur = 6;
-        ctx.shadowColor = color;
-        ctx.fill();
-        ctx.globalAlpha = 1;
-        ctx.shadowBlur = 0;
-      }
-      if (particlesRef.current.length > 0) raf = requestAnimationFrame(draw);
-    };
-
-    raf = requestAnimationFrame(draw);
-    return () => cancelAnimationFrame(raf);
-  }, [idx, phase]);
 
   const word  = WORDS[idx];
   const color = COLORS[idx];
@@ -173,7 +169,7 @@ function AnimatedWord() {
       <span
         className="invisible"
         aria-hidden="true"
-        style={{ fontFamily: "'Dancing Script', cursive", fontStyle: 'italic', fontWeight: 700 }}
+        style={{ fontFamily: "'Pacifico', cursive" }}
       >{word}</span>
 
       {/* Clip ile açılan renkli kelime — el yazısı fontu */}
@@ -185,9 +181,7 @@ function AnimatedWord() {
           opacity: exitOp,
           transition: phase === 'exit' ? `opacity ${EXIT_MS}ms ease` : 'none',
           textShadow: `0 0 36px ${color}55`,
-          fontFamily: "'Dancing Script', cursive",
-          fontStyle: 'italic',
-          fontWeight: 700,
+          fontFamily: "'Pacifico', cursive",
         }}
       >
         {word}
@@ -392,7 +386,7 @@ export default function Landing() {
 
   return (
     <div className="min-h-screen text-white" style={{ background: '#0a0a0f' }}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&display=swap');`}</style>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Pacifico&display=swap');`}</style>
 
       {/* ── NAV ──────────────────────────────────────────────────────────── */}
       <nav className="fixed top-0 left-0 right-0 z-50 flex items-center px-6 py-4"
