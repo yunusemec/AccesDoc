@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, type ReactNode } from 'react';
 
 // ── Scroll-reveal hook ────────────────────────────────────────────────────────
 function useScrollReveal(delay = 0) {
@@ -547,7 +547,7 @@ function AiIssueCard({ item, index }: { item: AiInsights['criticalIssues'][numbe
   );
 }
 
-function AiTextLine({ children, delay }: { children: JSX.Element; delay: number }) {
+function AiTextLine({ children, delay }: { children: ReactNode; delay: number }) {
   const { ref, visible } = useScrollReveal(delay);
   return (
     <div
