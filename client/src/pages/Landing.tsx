@@ -116,22 +116,72 @@ function AnimatedWord() {
         }}
       />
 
-      {/* SVG fırça ikonu — sadece sweep fazında */}
+      {/* SVG gerçekçi fırça — sadece sweep fazında */}
       {phase === 'sweep' && (
         <span
           className="absolute pointer-events-none select-none"
           style={{
             left: brushX,
             top: '50%',
-            transform: 'translate(-50%, -60%) rotate(-45deg)',
-            filter: `drop-shadow(0 0 6px ${color})`,
+            // Sallanma: sweep boyunca -40° ile -50° arasında sin dalgası
+            transform: `translate(-50%, -55%) rotate(${-45 + Math.sin(progress * Math.PI * 5) * 5}deg)`,
+            filter: `drop-shadow(0 0 8px ${color}88)`,
             zIndex: 20,
             lineHeight: 0,
           }}
         >
-          <svg viewBox="0 0 24 24" width="44" height="44" style={{ color }}>
-            <path d="M7 14c-1.66 0-3 1.34-3 3 0 1.31-1.16 2-2 2 .92 1.22 2.49 2 4 2 2.21 0 4-1.79 4-4 0-1.66-1.34-3-3-3z" fill="currentColor"/>
-            <path d="M20.71 4.63l-1.34-1.34a1 1 0 0 0-1.41 0L9 12.25 11.75 15l8.96-8.96a1 1 0 0 0 0-1.41z" fill="currentColor"/>
+          <svg viewBox="0 0 18 56" width="22" height="56">
+            <defs>
+              {/* Ahşap sap gradyanı */}
+              <linearGradient id="brush-handle" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%"   stopColor="#5C3A10"/>
+                <stop offset="28%"  stopColor="#B8742A"/>
+                <stop offset="50%"  stopColor="#D4933A"/>
+                <stop offset="72%"  stopColor="#B8742A"/>
+                <stop offset="100%" stopColor="#5C3A10"/>
+              </linearGradient>
+              {/* Metal ferrule gradyanı */}
+              <linearGradient id="brush-ferrule" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%"   stopColor="#888"/>
+                <stop offset="40%"  stopColor="#EEE"/>
+                <stop offset="60%"  stopColor="#FFF"/>
+                <stop offset="100%" stopColor="#888"/>
+              </linearGradient>
+              {/* Kıl gradyanı — renk + uçta şeffaflık */}
+              <linearGradient id="brush-bristle" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%"   stopColor={color} stopOpacity="1"/>
+                <stop offset="75%"  stopColor={color} stopOpacity="0.7"/>
+                <stop offset="100%" stopColor={color} stopOpacity="0.2"/>
+              </linearGradient>
+            </defs>
+
+            {/* ── Ahşap sap ── */}
+            <path d="M6.5,0 Q7,0 7,1 L7.5,31 L10.5,31 L11,1 Q11,0 11.5,0 Z"
+              fill="url(#brush-handle)"/>
+            {/* Sap üzerinde ahşap doku çizgisi */}
+            <line x1="9" y1="1" x2="9.2" y2="30" stroke="white" strokeWidth="0.4" strokeOpacity="0.18"/>
+            {/* Sap alt yuvarlak bitiş */}
+            <ellipse cx="9" cy="0.5" rx="2.5" ry="0.5" fill="#7A5020"/>
+
+            {/* ── Metal ferrule ── */}
+            <rect x="6" y="30" width="6" height="6" rx="0.5" fill="url(#brush-ferrule)"/>
+            {/* Ferrule üst/alt çizgiler */}
+            <line x1="6" y1="31.2" x2="12" y2="31.2" stroke="white" strokeWidth="0.5" strokeOpacity="0.6"/>
+            <line x1="6" y1="34.8" x2="12" y2="34.8" stroke="#666"  strokeWidth="0.3" strokeOpacity="0.5"/>
+
+            {/* ── Kıl gövdesi (fan/yelpaze) ── */}
+            <path d="M6.2,36 C5.2,42 3,50 1,56 L17,56 C15,50 12.8,42 11.8,36 Z"
+              fill="url(#brush-bristle)"/>
+
+            {/* Kıl doku çizgileri — dağınık yelpaze */}
+            <path d="M7.5,36 C6.5,42 5,50 3.5,56"  fill="none" stroke={color} strokeWidth="0.55" strokeOpacity="0.45"/>
+            <path d="M8.5,36 C8,42 7.2,50 6.5,56"  fill="none" stroke={color} strokeWidth="0.55" strokeOpacity="0.45"/>
+            <path d="M9,36 C9,43 9,50 9,56"         fill="none" stroke={color} strokeWidth="0.55" strokeOpacity="0.45"/>
+            <path d="M9.5,36 C10,43 10.8,50 11.5,56" fill="none" stroke={color} strokeWidth="0.55" strokeOpacity="0.45"/>
+            <path d="M10.5,36 C11.5,42 13,50 14.5,56" fill="none" stroke={color} strokeWidth="0.55" strokeOpacity="0.45"/>
+            {/* Uç dağınık kıllar */}
+            <path d="M7,36 C5.5,44 2.5,52 0.5,56"  fill="none" stroke={color} strokeWidth="0.3" strokeOpacity="0.25"/>
+            <path d="M11,36 C12.5,44 15.5,52 17.5,56" fill="none" stroke={color} strokeWidth="0.3" strokeOpacity="0.25"/>
           </svg>
         </span>
       )}
