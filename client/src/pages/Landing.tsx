@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
-// ── Scroll-reveal hook ────────────────────────────────────────────────────────
+// ── Scroll-reveal hook — her görünümde tekrar tetiklenir ─────────────────────
 function useScrollReveal(delay = 0) {
   const ref = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
@@ -13,10 +13,11 @@ function useScrollReveal(delay = 0) {
       ([entry]) => {
         if (entry.isIntersecting) {
           setTimeout(() => setVisible(true), delay);
-          observer.disconnect();
+        } else {
+          setVisible(false);
         }
       },
-      { threshold: 0.1 },
+      { threshold: 0.2 },
     );
     observer.observe(el);
     return () => observer.disconnect();
@@ -29,19 +30,33 @@ const WORDS  = ['artır', 'ölç', 'geliştir', 'test et'];
 const COLORS = ['#00d4ff', '#a855f7', '#10b981', '#f59e0b'];
 
 // Sweep süresi (ms) ve bekleme/çıkış süreleri
-const SWEEP_MS = 800;
+const SWEEP_MS = 1400;
 const HOLD_MS  = 2500;
 const EXIT_MS  = 400;
 
+// ── Partikül tipi ─────────────────────────────────────────────────────────────
+interface Particle {
+  x: number; y: number;
+  vx: number; vy: number;
+  r: number;
+  opacity: number;
+  born: number;
+}
+
 function AnimatedWord() {
   const [idx,      setIdx]      = useState(0);
-  // 'sweep': fırça geçiyor | 'show': kelime görünür | 'exit': soluklaşıyor
   const [phase,    setPhase]    = useState<'sweep' | 'show' | 'exit'>('sweep');
-  const [progress, setProgress] = useState(0); // 0→1 sweep boyunca
+  const [progress, setProgress] = useState(0);
+  const canvasRef  = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLSpanElement>(null);
+  const particlesRef = useRef<Particle[]>([]);
+  const lastProgressRef = useRef(0);
 
   useEffect(() => {
     setProgress(0);
     setPhase('sweep');
+    particlesRef.current = [];
+    lastProgressRef.current = 0;
 
     let raf: number;
     const t0 = performance.now();
@@ -49,11 +64,37 @@ function AnimatedWord() {
     const sweep = (now: number) => {
       const p = Math.min((now - t0) / SWEEP_MS, 1);
       setProgress(p);
+
+      // Partikül üret: ilerleme farkı > 0.01 ise
+      const canvas  = canvasRef.current;
+      const container = containerRef.current;
+      if (canvas && container && p - lastProgressRef.current > 0.008) {
+        const w = container.offsetWidth;
+        const h = container.offsetHeight;
+        canvas.width  = w;
+        canvas.height = h + 30;
+        const bx = p * w;
+        const by = h * 0.5;
+        const count = Math.floor(Math.random() * 4) + 4; // 4-7 partikül
+        for (let i = 0; i < count; i++) {
+          const angle = Math.random() * Math.PI * 2;
+          const speed = Math.random() * 2.5 + 0.8;
+          particlesRef.current.push({
+            x: bx, y: by,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed - 1.2,
+            r: Math.random() * 2.5 + 1.2,
+            opacity: 1,
+            born: now,
+          });
+        }
+        lastProgressRef.current = p;
+      }
+
       if (p < 1) {
         raf = requestAnimationFrame(sweep);
         return;
       }
-      // Sweep bitti → bekleme
       setPhase('show');
       const holdTimer = setTimeout(() => {
         setPhase('exit');
@@ -61,13 +102,48 @@ function AnimatedWord() {
           setIdx(i => (i + 1) % WORDS.length);
         }, EXIT_MS);
       }, HOLD_MS);
-      // Cleanup için holdTimer'ı saklamak lazım — closure yeterli
       return () => clearTimeout(holdTimer);
     };
 
     raf = requestAnimationFrame(sweep);
     return () => cancelAnimationFrame(raf);
   }, [idx]);
+
+  // Canvas partikül animasyonu
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    let raf: number;
+    const color = COLORS[idx];
+
+    const draw = (now: number) => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const LIFE = 600;
+      particlesRef.current = particlesRef.current.filter(p => now - p.born < LIFE);
+      for (const p of particlesRef.current) {
+        const age = now - p.born;
+        p.opacity = 1 - age / LIFE;
+        p.x += p.vx * 0.5;
+        p.y += p.vy * 0.5;
+        p.vy += 0.08; // hafif yerçekimi
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fillStyle = color;
+        ctx.globalAlpha = p.opacity;
+        ctx.shadowBlur = 6;
+        ctx.shadowColor = color;
+        ctx.fill();
+        ctx.globalAlpha = 1;
+        ctx.shadowBlur = 0;
+      }
+      if (particlesRef.current.length > 0) raf = requestAnimationFrame(draw);
+    };
+
+    raf = requestAnimationFrame(draw);
+    return () => cancelAnimationFrame(raf);
+  }, [idx, phase]);
 
   const word  = WORDS[idx];
   const color = COLORS[idx];
@@ -81,9 +157,17 @@ function AnimatedWord() {
 
   return (
     <span
+      ref={containerRef}
       className="relative inline-block"
       style={{ verticalAlign: 'baseline' }}
     >
+      {/* Partikül canvas — fırça izinde saçılan partiküller */}
+      <canvas
+        ref={canvasRef}
+        className="absolute pointer-events-none"
+        style={{ left: 0, top: '-15px', zIndex: 15 }}
+      />
+
       {/* Yer tutucu — layout genişliğini sabit tutar */}
       <span className="invisible" aria-hidden="true">{word}</span>
 
@@ -316,25 +400,12 @@ export default function Landing() {
     <div className="min-h-screen text-white" style={{ background: '#0a0a0f' }}>
 
       {/* ── NAV ──────────────────────────────────────────────────────────── */}
-      <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-4"
+      <nav className="fixed top-0 left-0 right-0 z-50 flex items-center px-6 py-4"
         style={{ background: 'rgba(10,10,15,0.85)', backdropFilter: 'blur(12px)', borderBottom: '1px solid rgba(255,255,255,0.04)' }}
       >
         <span className="font-bold text-white text-lg tracking-tight">
           Accessi<span style={{ color: '#00d4ff' }}>Scan</span>
         </span>
-        <div className="flex items-center gap-3">
-          <Link to="/login"
-            className="text-gray-400 hover:text-white text-sm font-medium transition-colors px-3 py-1.5"
-          >
-            Giriş Yap
-          </Link>
-          <Link to="/register"
-            className="text-sm font-semibold px-4 py-2 rounded-xl transition-all"
-            style={{ background: '#00d4ff', color: '#020c10', boxShadow: '0 0 16px rgba(0,212,255,0.3)' }}
-          >
-            Ücretsiz Başla
-          </Link>
-        </div>
       </nav>
 
       {/* ── HERO ─────────────────────────────────────────────────────────── */}
@@ -347,12 +418,13 @@ export default function Landing() {
           </div>
 
           {/* Başlık */}
-          <h1 className="font-extrabold leading-tight mb-3"
-            style={{ fontSize: 'clamp(2.2rem, 6vw, 4rem)', letterSpacing: '-0.02em' }}
-          >
-            <span className="text-white">Web erişilebilirliğini</span>
-            <br />
-            <AnimatedWord />
+          <h1 className="font-extrabold leading-none mb-2" style={{ letterSpacing: '-0.03em' }}>
+            <span className="block text-white text-5xl md:text-6xl lg:text-7xl mb-1">
+              Web erişilebilirliğini
+            </span>
+            <span className="block text-6xl md:text-7xl lg:text-8xl font-black">
+              <AnimatedWord />
+            </span>
           </h1>
 
           <p className="text-gray-400 text-base mt-6 mb-10 max-w-xl mx-auto leading-relaxed">
@@ -499,17 +571,34 @@ export default function Landing() {
           <div className="flex flex-col md:flex-row gap-5 mb-10">
             <PlanCard
               name="Free" price="₺0/ay"
-              features={['5 analiz hakkı', 'HTML & CSS analizi', 'Otomatik düzeltme önizleme']}
+              features={[
+                '5 analiz hakkı',
+                'HTML erişilebilirlik analizi',
+                'CSS erişilebilirlik analizi',
+                'Otomatik düzeltme önizleme',
+              ]}
               color="#6b7280" delay={0}
             />
             <PlanCard
-              name="Starter" price="₺149/ay"
-              features={['50 analiz / ay', 'URL & HTML analizi', 'AI önerileri', 'E-posta desteği']}
+              name="Starter" price="₺99/ay"
+              features={[
+                "Free'deki her şey +",
+                '50 analiz hakkı / ay',
+                'Analiz geçmişi',
+                'Kod indirme',
+                'E-posta desteği',
+              ]}
               color="#00d4ff" highlight delay={100}
             />
             <PlanCard
-              name="Pro" price="₺299/ay"
-              features={['Sınırsız analiz', 'PDF raporu indirme', 'Öncelikli destek', 'API erişimi']}
+              name="Pro" price="₺249/ay"
+              features={[
+                "Starter'daki her şey +",
+                'Sınırsız analiz',
+                'PDF raporu indirme',
+                'Öncelikli destek',
+                'API erişimi (yakında)',
+              ]}
               color="#f59e0b" delay={200}
             />
           </div>
