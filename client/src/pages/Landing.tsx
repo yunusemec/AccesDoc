@@ -26,8 +26,8 @@ function useScrollReveal(delay = 0) {
 }
 
 // ── Animasyonlu kelimeler ─────────────────────────────────────────────────────
-const WORDS  = ['artır', 'test et', 'analiz et', 'denetle', 'kontrol et', 'izle', 'raporla', 'optimize et', 'iyileştir'];
-const COLORS = ['#00d4ff', '#a855f7', '#10b981', '#f59e0b', '#00d4ff', '#a855f7', '#10b981', '#f59e0b', '#00d4ff'];
+const WORDS  = ['artır.', 'test et.', 'analiz et.', 'denetle.', 'kontrol et.', 'izle.'];
+const COLORS = ['#00d4ff', '#a855f7', '#10b981', '#f59e0b', '#00d4ff', '#a855f7'];
 
 // Sweep süresi (ms) ve bekleme/çıkış süreleri
 const SWEEP_MS = 1400;
