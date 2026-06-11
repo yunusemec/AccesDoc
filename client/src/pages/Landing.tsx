@@ -407,13 +407,13 @@ export default function Landing() {
           </div>
 
           {/* Başlık */}
-          <h1 className="font-extrabold leading-none mb-2" style={{ letterSpacing: '-0.03em' }}>
+          <h1 className="font-extrabold leading-none mb-2" style={{ letterSpacing: '-0.03em', overflow: 'visible' }}>
             <span className="block text-white text-5xl md:text-6xl lg:text-7xl mb-1">
               Web erişilebilirliğini
             </span>
             <span
               className="text-6xl md:text-7xl lg:text-8xl font-black"
-              style={{ display: 'block', overflow: 'visible', paddingBottom: '3.5rem', paddingTop: '0.5rem', paddingRight: '2rem', lineHeight: 1.4 }}
+              style={{ display: 'block', overflow: 'visible', paddingBottom: '5rem', paddingTop: '0.5rem', paddingRight: '4rem', lineHeight: 1.5 }}
             >
               <AnimatedWord />
             </span>
