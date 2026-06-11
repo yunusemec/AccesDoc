@@ -53,5 +53,4 @@ docker-compose up
 - Frontend: https://accessiscan-sand.vercel.app
 - Backend: https://accessiscan-api-ccge.onrender.com
 
-## 📄 Lisans
-MIT
+
