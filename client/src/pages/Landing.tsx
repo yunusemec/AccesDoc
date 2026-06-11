@@ -26,8 +26,8 @@ function useScrollReveal(delay = 0) {
 }
 
 // ── Animasyonlu kelimeler ─────────────────────────────────────────────────────
-const WORDS  = ['artır.', 'test et.', 'analiz et.', 'denetle.', 'kontrol et.', 'izle.'];
-const COLORS = ['#00d4ff', '#a855f7', '#10b981', '#f59e0b', '#00d4ff', '#a855f7'];
+const WORDS  = ['artır.', 'test et.', 'analiz et.', 'denetle.', 'kontrol et.', 'izle.', 'raporla.', 'optimize et.', 'iyileştir.'];
+const COLORS = ['#00d4ff', '#a855f7', '#10b981', '#f59e0b', '#00d4ff', '#a855f7', '#10b981', '#f59e0b', '#00d4ff'];
 
 // Sweep süresi (ms) ve bekleme/çıkış süreleri
 const SWEEP_MS = 1400;
@@ -413,7 +413,7 @@ export default function Landing() {
             </span>
             <span
               className="text-6xl md:text-7xl lg:text-8xl font-black"
-              style={{ display: 'block', overflow: 'visible', paddingBottom: '5rem', paddingTop: '0.5rem', paddingRight: '4rem', lineHeight: 1.5 }}
+              style={{ display: 'block', overflow: 'visible', paddingBottom: '3rem', paddingTop: '0.5rem', paddingRight: '4rem', lineHeight: 1.5 }}
             >
               <AnimatedWord />
             </span>
