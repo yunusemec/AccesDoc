@@ -98,41 +98,32 @@ function openOriginal(html: string) {
 // ── Split diff'i yeni sekmede aç ──────────────────────────────────────────────
 
 interface SplitRow {
-  leftNum:  number | null;
-  leftText: string;
-  leftType: 'del' | 'eq' | 'empty';
+  leftNum:   number | null;
+  leftText:  string;
+  leftType:  'del' | 'eq' | 'empty';
   rightNum:  number | null;
   rightText: string;
   rightType: 'add' | 'eq' | 'empty';
 }
 
+// Satır satır karşılaştırma: aynıysa eq, farklıysa del/add, kısa taraf boş satırla dolar
 function computeSplitDiff(oldLines: string[], newLines: string[]): SplitRow[] {
-  const n = oldLines.length, m = newLines.length;
-  const dp: number[][] = Array.from({ length: n + 1 }, () => new Array(m + 1).fill(0));
-  for (let i = n - 1; i >= 0; i--)
-    for (let j = m - 1; j >= 0; j--)
-      dp[i][j] = oldLines[i] === newLines[j]
-        ? 1 + dp[i + 1][j + 1]
-        : Math.max(dp[i + 1][j], dp[i][j + 1]);
-
-  const rows: SplitRow[] = [];
-  let i = 0, j = 0, ln = 1, rn = 1;
-  while (i < n || j < m) {
-    if (i < n && j < m && oldLines[i] === newLines[j]) {
-      rows.push({ leftNum: ln++, leftText: oldLines[i], leftType: 'eq', rightNum: rn++, rightText: newLines[j], rightType: 'eq' });
-      i++; j++;
-    } else if (i < n && j < m && dp[i + 1][j] >= dp[i][j + 1]) {
-      rows.push({ leftNum: ln++, leftText: oldLines[i], leftType: 'del', rightNum: null, rightText: '', rightType: 'empty' });
-      i++;
-    } else if (j < m && (i >= n || dp[i][j + 1] > dp[i + 1][j])) {
-      rows.push({ leftNum: null, leftText: '', leftType: 'empty', rightNum: rn++, rightText: newLines[j], rightType: 'add' });
-      j++;
-    } else {
-      rows.push({ leftNum: ln++, leftText: oldLines[i], leftType: 'del', rightNum: rn++, rightText: newLines[j], rightType: 'add' });
-      i++; j++;
-    }
-  }
-  return rows;
+  const maxLen = Math.max(oldLines.length, newLines.length);
+  return Array.from({ length: maxLen }, (_, i) => {
+    const hasL = i < oldLines.length;
+    const hasR = i < newLines.length;
+    const l    = hasL ? oldLines[i] : '';
+    const r    = hasR ? newLines[i] : '';
+    const same = hasL && hasR && l.trim() === r.trim();
+    return {
+      leftNum:   hasL ? i + 1 : null,
+      leftText:  l,
+      leftType:  !hasL ? 'empty' : same ? 'eq' : 'del',
+      rightNum:  hasR ? i + 1 : null,
+      rightText: r,
+      rightType: !hasR ? 'empty' : same ? 'eq' : 'add',
+    } satisfies SplitRow;
+  });
 }
 
 function openSplitDiff(original: string, fixed: string) {
@@ -144,54 +135,75 @@ function openSplitDiff(original: string, fixed: string) {
   const addedCount   = rows.filter(r => r.rightType === 'add').length;
   const deletedCount = rows.filter(r => r.leftType  === 'del').length;
 
-  const tableRows = rows.map(r => {
-    const lBg  = r.leftType  === 'del'   ? 'background:#2a0d0d' : '';
-    const rBg  = r.rightType === 'add'   ? 'background:#0d2a0d' : '';
-    const lPfx = r.leftType  === 'del'   ? `<span style="color:#f87171">-</span>` : `<span style="color:#374151"> </span>`;
-    const rPfx = r.rightType === 'add'   ? `<span style="color:#4ade80">+</span>` : `<span style="color:#374151"> </span>`;
-    const lTxt = r.leftType  === 'empty' ? '' : (r.leftType  === 'del' ? escHtml(r.leftText)  : syntaxHighlight(r.leftText));
-    const rTxt = r.rightType === 'empty' ? '' : (r.rightType === 'add' ? escHtml(r.rightText) : syntaxHighlight(r.rightText));
-    const lNum = r.leftNum  != null ? String(r.leftNum).padStart(numW,  ' ') : ' '.repeat(numW);
-    const rNum = r.rightNum != null ? String(r.rightNum).padStart(numW, ' ') : ' '.repeat(numW);
-    const lColor = r.leftType  === 'del' ? 'color:#fca5a5' : '';
-    const rColor = r.rightType === 'add' ? 'color:#86efac' : '';
-    return `<tr>
-      <td class="ln" style="${lBg}">${lNum}</td>
-      <td class="pfx" style="${lBg}">${lPfx}</td>
-      <td class="src" style="${lBg};${lColor};width:50%;border-right:2px solid #0a0a0f">${lTxt || ' '}</td>
-      <td class="ln" style="${rBg}">${rNum}</td>
-      <td class="pfx" style="${rBg}">${rPfx}</td>
-      <td class="src" style="${rBg};${rColor};width:50%">${rTxt || ' '}</td>
-    </tr>`;
+  const leftRows = rows.map(r => {
+    const bg  = r.leftType === 'del' ? '#2a0d0d' : 'transparent';
+    const col = r.leftType === 'del' ? 'color:#fca5a5' : '';
+    const pfx = r.leftType === 'del'
+      ? `<span style="color:#f87171">-</span>`
+      : `<span style="color:#374151"> </span>`;
+    const txt = r.leftType === 'empty' ? '' : r.leftType === 'del'
+      ? escHtml(r.leftText) : syntaxHighlight(r.leftText);
+    const num = r.leftNum != null ? String(r.leftNum).padStart(numW, ' ') : ' '.repeat(numW);
+    return `<tr style="background:${bg}">
+      <td class="ln">${num}</td><td class="pfx">${pfx}</td>
+      <td class="src" style="${col}">${txt || ' '}</td></tr>`;
+  }).join('');
+
+  const rightRows = rows.map(r => {
+    const bg  = r.rightType === 'add' ? '#0d2a0d' : 'transparent';
+    const col = r.rightType === 'add' ? 'color:#86efac' : '';
+    const pfx = r.rightType === 'add'
+      ? `<span style="color:#4ade80">+</span>`
+      : `<span style="color:#374151"> </span>`;
+    const txt = r.rightType === 'empty' ? '' : r.rightType === 'add'
+      ? escHtml(r.rightText) : syntaxHighlight(r.rightText);
+    const num = r.rightNum != null ? String(r.rightNum).padStart(numW, ' ') : ' '.repeat(numW);
+    return `<tr style="background:${bg}">
+      <td class="ln">${num}</td><td class="pfx">${pfx}</td>
+      <td class="src" style="${col}">${txt || ' '}</td></tr>`;
   }).join('');
 
   const page = `<!DOCTYPE html><html lang="tr"><head><meta charset="UTF-8"><title>Diff Görünümü</title>
-<style>${PAGE_STYLE}
+<style>
+  ${PAGE_STYLE}
+  html, body { height:100%; overflow:hidden; }
+  .outer { display:flex; flex-direction:column; height:100%; }
+  .panels { display:flex; flex-direction:row; flex:1; overflow:hidden; }
+  .panel { flex:1; overflow:auto; }
+  .panel-left { border-right:2px solid #0a0a0f; }
+  .panel-hdr { position:sticky; top:0; background:#12121a; border-bottom:1px solid #1e1e2e; padding:4px 8px 4px 16px; font-size:11px; z-index:5; }
   .hdr-stats { display:flex; gap:8px; align-items:center; }
   .add-badge { color:#4ade80; background:rgba(74,222,128,0.1); border:1px solid rgba(74,222,128,0.25); padding:1px 8px; border-radius:99px; font-size:11px; }
   .del-badge { color:#f87171; background:rgba(248,113,113,0.1); border:1px solid rgba(248,113,113,0.25); padding:1px 8px; border-radius:99px; font-size:11px; }
-  .panel-hdr { background:#12121a; border-bottom:1px solid #1e1e2e; padding:4px 8px 4px 16px; font-size:11px; }
-  .panel-hdr.left  { color:#fca5a5; border-right:2px solid #0a0a0f; }
-  .panel-hdr.right { color:#86efac; }
-  .panel-row td { border-bottom:none; }
 </style></head><body>
-<div class="hdr">
-  <span class="hdr-t">Split Diff — Orijinal vs Düzeltilmiş</span>
-  <div class="hdr-stats">
-    <span class="add-badge">+${addedCount}</span>
-    <span class="del-badge">-${deletedCount}</span>
-    <span class="hdr-m">${rows.length} satır</span>
+<div class="outer">
+  <div class="hdr">
+    <span class="hdr-t">Split Diff — Orijinal vs Düzeltilmiş</span>
+    <div class="hdr-stats">
+      <span class="add-badge">+${addedCount}</span>
+      <span class="del-badge">-${deletedCount}</span>
+      <span class="hdr-m">${rows.length} satır</span>
+    </div>
+  </div>
+  <div class="panels">
+    <div class="panel panel-left" id="pLeft">
+      <div class="panel-hdr" style="color:#fca5a5">Orijinal — ${oldLines.length} satır</div>
+      <table><tbody>${leftRows}</tbody></table>
+    </div>
+    <div class="panel" id="pRight">
+      <div class="panel-hdr" style="color:#86efac">Düzeltilmiş — ${newLines.length} satır</div>
+      <table><tbody>${rightRows}</tbody></table>
+    </div>
   </div>
 </div>
-<table>
-  <thead>
-    <tr>
-      <th colspan="3" class="panel-hdr left">Orijinal</th>
-      <th colspan="3" class="panel-hdr right">Düzeltilmiş</th>
-    </tr>
-  </thead>
-  <tbody>${tableRows}</tbody>
-</table></body></html>`;
+<script>
+  const pL = document.getElementById('pLeft');
+  const pR = document.getElementById('pRight');
+  let lock = false;
+  pL.addEventListener('scroll', () => { if (!lock) { lock = true; pR.scrollTop = pL.scrollTop; lock = false; } });
+  pR.addEventListener('scroll', () => { if (!lock) { lock = true; pL.scrollTop = pR.scrollTop; lock = false; } });
+</script>
+</body></html>`;
 
   const w = window.open('', '_blank');
   if (w) { w.document.write(page); w.document.close(); }
