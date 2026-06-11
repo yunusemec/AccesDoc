@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 
 interface Props {
   originalHtml: string;
@@ -197,37 +197,6 @@ function openSplitDiff(original: string, fixed: string) {
   if (w) { w.document.write(page); w.document.close(); }
 }
 
-// ── Satır bazlı diff (inline görünüm için) ────────────────────────────────────
-
-interface DiffLine {
-  type: 'add' | 'del' | 'eq';
-  text: string;
-  lineNum: number;
-}
-
-function computeInlineDiff(oldLines: string[], newLines: string[]): DiffLine[] {
-  const n = oldLines.length, m = newLines.length;
-  const dp: number[][] = Array.from({ length: n + 1 }, () => new Array(m + 1).fill(0));
-  for (let i = n - 1; i >= 0; i--)
-    for (let j = m - 1; j >= 0; j--)
-      dp[i][j] = oldLines[i] === newLines[j]
-        ? 1 + dp[i + 1][j + 1]
-        : Math.max(dp[i + 1][j], dp[i][j + 1]);
-
-  const result: DiffLine[] = [];
-  let i = 0, j = 0, ln = 1;
-  while (i < n || j < m) {
-    if (i < n && j < m && oldLines[i] === newLines[j]) {
-      result.push({ type: 'eq',  text: oldLines[i], lineNum: ln++ }); i++; j++;
-    } else if (j < m && (i >= n || dp[i][j + 1] >= dp[i + 1][j])) {
-      result.push({ type: 'add', text: newLines[j], lineNum: ln++ }); j++;
-    } else {
-      result.push({ type: 'del', text: oldLines[i], lineNum: ln++ }); i++;
-    }
-  }
-  return result;
-}
-
 // ── Component ─────────────────────────────────────────────────────────────────
 
 type TabKey = 'original' | 'fixed';
@@ -239,16 +208,19 @@ export default function HtmlPreview({ originalHtml, fixedHtml, plan = 'FREE' }: 
 
   const PREVIEW_LIMIT = 50;
 
-  const highlightedOriginal = syntaxHighlight(originalHtml);
-  const origLines           = highlightedOriginal.split('\n');
-  const origNumW            = String(origLines.length).length;
-  const origPreview         = origLines.slice(0, PREVIEW_LIMIT);
-  const origExtra           = origLines.length - PREVIEW_LIMIT;
+  // Syntax highlight — sadece ilgili sekme aktifken hesapla
+  const origLines = useMemo(() => syntaxHighlight(originalHtml).split('\n'), [originalHtml]);
+  const origNumW  = String(origLines.length).length;
+  const origPreview = origLines.slice(0, PREVIEW_LIMIT);
+  const origExtra   = origLines.length - PREVIEW_LIMIT;
 
-  const diffLines   = computeInlineDiff(originalHtml.split('\n'), fixedHtml.split('\n'));
-  const diffNumW    = String(diffLines.length).length;
-  const diffPreview = diffLines.slice(0, PREVIEW_LIMIT);
-  const diffExtra   = diffLines.length - PREVIEW_LIMIT;
+  const fixedLines = useMemo(
+    () => activeTab === 'fixed' ? syntaxHighlight(fixedHtml).split('\n') : [],
+    [activeTab, fixedHtml],
+  );
+  const fixedNumW   = String(fixedLines.length).length;
+  const fixedPreview = fixedLines.slice(0, PREVIEW_LIMIT);
+  const fixedExtra   = fixedLines.length - PREVIEW_LIMIT;
 
   const tabs: { key: TabKey; label: string; icon: string }[] = [
     { key: 'original', label: 'Orijinal Kod',    icon: '</>' },
@@ -327,22 +299,18 @@ export default function HtmlPreview({ originalHtml, fixedHtml, plan = 'FREE' }: 
         </div>
       )}
 
-      {/* ── Düzeltilmiş Kod (inline diff) ───────────────────────────────── */}
+      {/* ── Düzeltilmiş Kod (syntax highlight, diff yok) ────────────────── */}
       {activeTab === 'fixed' && (
         <div className="border border-[#1e1e2e] rounded-2xl overflow-hidden shadow-lg">
           <div className="px-4 py-2 bg-[#12121a] border-b border-[#1e1e2e] flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-[#39ff14]" />
               <span className="text-xs text-gray-500">AI ile Düzeltilmiş HTML Kodu</span>
-              <span className="text-[10px] text-[#39ff14] bg-[#39ff14]/10 border border-[#39ff14]/20 px-1.5 py-0.5 rounded-full">
-                +{diffLines.filter(d => d.type === 'add').length}
-              </span>
-              <span className="text-[10px] text-red-400 bg-red-400/10 border border-red-400/20 px-1.5 py-0.5 rounded-full">
-                -{diffLines.filter(d => d.type === 'del').length}
-              </span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-[10px] text-gray-600">{fixedHtml.split('\n').length} satır</span>
+              <span className="text-[10px] text-gray-600">
+                {fixedLines.length} satır · {fixedHtml.length.toLocaleString('tr-TR')} karakter
+              </span>
 
               {/* ↓ İndir */}
               {canDownload ? (
@@ -364,7 +332,7 @@ export default function HtmlPreview({ originalHtml, fixedHtml, plan = 'FREE' }: 
                 </span>
               )}
 
-              {/* ↗ Aç — split diff */}
+              {/* ↗ Aç — split diff (diff burada hesaplanır) */}
               {canOpen ? (
                 <button
                   onClick={() => openSplitDiff(originalHtml, fixedHtml)}
@@ -380,38 +348,26 @@ export default function HtmlPreview({ originalHtml, fixedHtml, plan = 'FREE' }: 
             </div>
           </div>
 
-          {/* Inline diff tablo */}
+          {/* Syntax highlighted preview, diff yok */}
           <div className="overflow-auto" style={{ maxHeight: '600px' }}>
             <table style={{ borderCollapse: 'collapse', width: '100%', background: '#0d0d17' }}>
               <tbody>
-                {diffPreview.map((dl, idx) => {
-                  const bg        = dl.type === 'add' ? '#0d2a0d' : dl.type === 'del' ? '#2a0d0d' : 'transparent';
-                  const textColor = dl.type === 'add' ? '#86efac' : dl.type === 'del' ? '#fca5a5' : undefined;
-                  const prefix    = dl.type === 'add'
-                    ? <span style={{ color: '#4ade80' }}>+</span>
-                    : dl.type === 'del'
-                      ? <span style={{ color: '#f87171' }}>-</span>
-                      : <span style={{ color: '#374151' }}> </span>;
-                  return (
-                    <tr key={idx} style={{ verticalAlign: 'top', background: bg }}>
-                      <td style={{ color: '#3d4a5c', textAlign: 'right', padding: '0 8px', userSelect: 'none', whiteSpace: 'pre', fontSize: 11, borderRight: '1px solid #1a1a2e', minWidth: 36, fontFamily: 'monospace', lineHeight: '1.6' }}>
-                        {dl.type !== 'del' ? String(dl.lineNum).padStart(diffNumW, ' ') : ' '.repeat(diffNumW)}
-                      </td>
-                      <td style={{ padding: '0 6px', fontFamily: 'monospace', fontSize: 12, lineHeight: '1.6', userSelect: 'none' }}>
-                        {prefix}
-                      </td>
-                      <td
-                        style={{ padding: '0 12px 0 0', whiteSpace: 'pre', fontFamily: 'monospace', fontSize: 12, lineHeight: '1.6', color: textColor }}
-                        dangerouslySetInnerHTML={{ __html: dl.type === 'eq' ? syntaxHighlight(dl.text) : escHtml(dl.text) }}
-                      />
-                    </tr>
-                  );
-                })}
+                {fixedPreview.map((line, i) => (
+                  <tr key={i} style={{ verticalAlign: 'top' }}
+                      onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.03)')}
+                      onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                    <td style={{ color: '#3d4a5c', textAlign: 'right', padding: '0 12px', userSelect: 'none', whiteSpace: 'pre', fontSize: 11, borderRight: '1px solid #1a1a2e', minWidth: 40, fontFamily: 'monospace', lineHeight: '1.6' }}>
+                      {String(i + 1).padStart(fixedNumW, ' ')}
+                    </td>
+                    <td style={{ padding: '0 16px', whiteSpace: 'pre', fontFamily: 'monospace', fontSize: 12, lineHeight: '1.6' }}
+                        dangerouslySetInnerHTML={{ __html: line || ' ' }} />
+                  </tr>
+                ))}
               </tbody>
             </table>
-            {diffExtra > 0 && (
+            {fixedExtra > 0 && (
               <div className="px-4 py-2.5 text-xs text-gray-500 border-t border-[#1e1e2e]" style={{ background: '#0d0d17' }}>
-                … ve <span className="text-gray-300 font-medium">{diffExtra}</span> satır daha. Tamamını görmek için{' '}
+                … ve <span className="text-gray-300 font-medium">{fixedExtra}</span> satır daha. Tamamını görmek için{' '}
                 <button onClick={() => openSplitDiff(originalHtml, fixedHtml)} className="text-[#00d4ff] hover:underline">Aç</button> butonuna tıklayın.
               </div>
             )}
