@@ -162,7 +162,6 @@ export default function HtmlPreview({ originalHtml, fixedHtml, plan = 'FREE' }: 
   const [activeTab, setActiveTab] = useState<TabKey>('original');
 
   const highlightedOriginal = syntaxHighlight(originalHtml);
-  const highlightedFixed    = syntaxHighlight(fixedHtml);
 
   // Diff — sadece fixed sekmesinde lazım, satır bazlı
   const diffLines = computeDiff(originalHtml.split('\n'), fixedHtml.split('\n'));
