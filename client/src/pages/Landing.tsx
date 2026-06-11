@@ -65,25 +65,26 @@ function AnimatedWord() {
       const p = Math.min((now - t0) / SWEEP_MS, 1);
       setProgress(p);
 
-      // Partikül üret: ilerleme farkı > 0.01 ise
-      const canvas  = canvasRef.current;
+      // Partikül üret: ilerleme farkı > 0.008 ise
+      const canvas    = canvasRef.current;
       const container = containerRef.current;
       if (canvas && container && p - lastProgressRef.current > 0.008) {
         const w = container.offsetWidth;
         const h = container.offsetHeight;
-        canvas.width  = w;
-        canvas.height = h + 30;
-        const bx = p * w;
-        const by = h * 0.5;
-        const count = Math.floor(Math.random() * 4) + 4; // 4-7 partikül
+        const PAD = 60; // canvas her yana 60px taşsın
+        canvas.width  = w + PAD * 2;
+        canvas.height = h + PAD * 2;
+        const bx = p * w + PAD;       // offset edilmiş fırça X
+        const by = h * 0.5 + PAD;    // offset edilmiş fırça Y
+        const count = Math.floor(Math.random() * 4) + 6; // 6-9 partikül
         for (let i = 0; i < count; i++) {
           const angle = Math.random() * Math.PI * 2;
-          const speed = Math.random() * 2.5 + 0.8;
+          const speed = Math.random() * 3 + 1;
           particlesRef.current.push({
             x: bx, y: by,
             vx: Math.cos(angle) * speed,
-            vy: Math.sin(angle) * speed - 1.2,
-            r: Math.random() * 2.5 + 1.2,
+            vy: Math.sin(angle) * speed - 1.5,
+            r: Math.random() * 2.5 + 1.5,
             opacity: 1,
             born: now,
           });
@@ -161,17 +162,21 @@ function AnimatedWord() {
       className="relative inline-block"
       style={{ verticalAlign: 'baseline' }}
     >
-      {/* Partikül canvas — fırça izinde saçılan partiküller */}
+      {/* Partikül canvas — her yana 60px taşarak kırpılmayı önler */}
       <canvas
         ref={canvasRef}
         className="absolute pointer-events-none"
-        style={{ left: 0, top: '-15px', zIndex: 15 }}
+        style={{ left: -60, top: -60, zIndex: 15 }}
       />
 
-      {/* Yer tutucu — layout genişliğini sabit tutar */}
-      <span className="invisible" aria-hidden="true">{word}</span>
+      {/* Yer tutucu — aynı font, layout genişliğini sabit tutar */}
+      <span
+        className="invisible"
+        aria-hidden="true"
+        style={{ fontFamily: "'Dancing Script', cursive", fontStyle: 'italic', fontWeight: 700 }}
+      >{word}</span>
 
-      {/* Clip ile açılan renkli kelime */}
+      {/* Clip ile açılan renkli kelime — el yazısı fontu */}
       <span
         className="absolute inset-0 whitespace-nowrap"
         style={{
@@ -180,25 +185,15 @@ function AnimatedWord() {
           opacity: exitOp,
           transition: phase === 'exit' ? `opacity ${EXIT_MS}ms ease` : 'none',
           textShadow: `0 0 36px ${color}55`,
+          fontFamily: "'Dancing Script', cursive",
+          fontStyle: 'italic',
+          fontWeight: 700,
         }}
       >
         {word}
       </span>
 
-      {/* Büyüyen alt çizgi */}
-      <span
-        className="absolute left-0 pointer-events-none"
-        style={{
-          bottom: -5,
-          height: 3,
-          width: brushX,
-          background: color,
-          borderRadius: 2,
-          opacity: exitOp,
-          transition: phase === 'exit' ? `opacity ${EXIT_MS}ms ease` : 'none',
-          boxShadow: `0 0 8px ${color}99`,
-        }}
-      />
+      {/* alt çizgi kaldırıldı — partiküller yeterli */}
 
       {/* SVG gerçekçi fırça — sadece sweep fazında */}
       {phase === 'sweep' && (
@@ -362,7 +357,7 @@ function PlanCard({ name, price, features, color, highlight, delay }: {
             className="text-[10px] font-bold px-3 py-1 rounded-full"
             style={{ background: `${color}18`, color, border: `1px solid ${color}30` }}
           >
-            EN POPÜLER
+            🔥 En Popüler
           </span>
         </div>
       )}
@@ -389,15 +384,15 @@ export default function Landing() {
     if (!loading && user) navigate('/analyze', { replace: true });
   }, [user, loading, navigate]);
 
-  const howRef    = useScrollReveal(0);
-  const featRef   = useScrollReveal(0);
-  const plansRef  = useScrollReveal(0);
-  const ctaRef    = useScrollReveal(0);
+  const howRef   = useScrollReveal(0);
+  const featRef  = useScrollReveal(0);
+  const plansRef = useScrollReveal(0);
 
   if (loading) return null;
 
   return (
     <div className="min-h-screen text-white" style={{ background: '#0a0a0f' }}>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&display=swap');`}</style>
 
       {/* ── NAV ──────────────────────────────────────────────────────────── */}
       <nav className="fixed top-0 left-0 right-0 z-50 flex items-center px-6 py-4"
@@ -588,7 +583,7 @@ export default function Landing() {
                 'Kod indirme',
                 'E-posta desteği',
               ]}
-              color="#00d4ff" highlight delay={100}
+              color="#00d4ff" delay={100}
             />
             <PlanCard
               name="Pro" price="₺249/ay"
@@ -599,7 +594,7 @@ export default function Landing() {
                 'Öncelikli destek',
                 'API erişimi (yakında)',
               ]}
-              color="#f59e0b" delay={200}
+              color="#f59e0b" highlight delay={200}
             />
           </div>
 
@@ -620,15 +615,7 @@ export default function Landing() {
           className="absolute inset-0 pointer-events-none"
           style={{ background: 'radial-gradient(ellipse 60% 60% at 50% 50%, rgba(0,212,255,0.06) 0%, transparent 70%)' }}
         />
-        <div
-          ref={ctaRef.ref}
-          className="relative z-10 max-w-xl mx-auto"
-          style={{
-            opacity:   ctaRef.visible ? 1 : 0,
-            transform: ctaRef.visible ? 'translateY(0)' : 'translateY(20px)',
-            transition: 'opacity 0.5s ease, transform 0.5s ease',
-          }}
-        >
+        <div className="relative z-10 max-w-xl mx-auto">
           <h2 className="text-3xl font-extrabold text-white mb-4 leading-tight">
             Hemen <span style={{ color: '#00d4ff' }}>ücretsiz</span> başlayın
           </h2>
