@@ -547,7 +547,7 @@ function AiIssueCard({ item, index }: { item: AiInsights['criticalIssues'][numbe
   );
 }
 
-function AiTextLine({ children, delay }: { children: React.ReactNode; delay: number }) {
+function AiTextLine({ children, delay }: { children: ReactNode; delay: number }) {
   const { ref, visible } = useScrollReveal(delay);
   return (
     <div
