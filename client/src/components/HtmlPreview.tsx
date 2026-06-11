@@ -237,12 +237,18 @@ export default function HtmlPreview({ originalHtml, fixedHtml, plan = 'FREE' }: 
   const canOpen     = plan === 'PRO';
   const [activeTab, setActiveTab] = useState<TabKey>('original');
 
+  const PREVIEW_LIMIT = 50;
+
   const highlightedOriginal = syntaxHighlight(originalHtml);
   const origLines           = highlightedOriginal.split('\n');
   const origNumW            = String(origLines.length).length;
+  const origPreview         = origLines.slice(0, PREVIEW_LIMIT);
+  const origExtra           = origLines.length - PREVIEW_LIMIT;
 
-  const diffLines = computeInlineDiff(originalHtml.split('\n'), fixedHtml.split('\n'));
-  const diffNumW  = String(diffLines.length).length;
+  const diffLines   = computeInlineDiff(originalHtml.split('\n'), fixedHtml.split('\n'));
+  const diffNumW    = String(diffLines.length).length;
+  const diffPreview = diffLines.slice(0, PREVIEW_LIMIT);
+  const diffExtra   = diffLines.length - PREVIEW_LIMIT;
 
   const tabs: { key: TabKey; label: string; icon: string }[] = [
     { key: 'original', label: 'Orijinal Kod',    icon: '</>' },
@@ -298,7 +304,7 @@ export default function HtmlPreview({ originalHtml, fixedHtml, plan = 'FREE' }: 
           <div className="overflow-auto" style={{ maxHeight: '600px' }}>
             <table style={{ borderCollapse: 'collapse', width: '100%', background: '#0d0d17' }}>
               <tbody>
-                {origLines.map((line, i) => (
+                {origPreview.map((line, i) => (
                   <tr key={i} style={{ verticalAlign: 'top' }}
                       onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.03)')}
                       onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
@@ -311,6 +317,12 @@ export default function HtmlPreview({ originalHtml, fixedHtml, plan = 'FREE' }: 
                 ))}
               </tbody>
             </table>
+            {origExtra > 0 && (
+              <div className="px-4 py-2.5 text-xs text-gray-500 border-t border-[#1e1e2e]" style={{ background: '#0d0d17' }}>
+                … ve <span className="text-gray-300 font-medium">{origExtra}</span> satır daha. Tamamını görmek için{' '}
+                <button onClick={() => openOriginal(originalHtml)} className="text-[#00d4ff] hover:underline">Aç</button> butonuna tıklayın.
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -372,7 +384,7 @@ export default function HtmlPreview({ originalHtml, fixedHtml, plan = 'FREE' }: 
           <div className="overflow-auto" style={{ maxHeight: '600px' }}>
             <table style={{ borderCollapse: 'collapse', width: '100%', background: '#0d0d17' }}>
               <tbody>
-                {diffLines.map((dl, idx) => {
+                {diffPreview.map((dl, idx) => {
                   const bg        = dl.type === 'add' ? '#0d2a0d' : dl.type === 'del' ? '#2a0d0d' : 'transparent';
                   const textColor = dl.type === 'add' ? '#86efac' : dl.type === 'del' ? '#fca5a5' : undefined;
                   const prefix    = dl.type === 'add'
@@ -397,6 +409,12 @@ export default function HtmlPreview({ originalHtml, fixedHtml, plan = 'FREE' }: 
                 })}
               </tbody>
             </table>
+            {diffExtra > 0 && (
+              <div className="px-4 py-2.5 text-xs text-gray-500 border-t border-[#1e1e2e]" style={{ background: '#0d0d17' }}>
+                … ve <span className="text-gray-300 font-medium">{diffExtra}</span> satır daha. Tamamını görmek için{' '}
+                <button onClick={() => openSplitDiff(originalHtml, fixedHtml)} className="text-[#00d4ff] hover:underline">Aç</button> butonuna tıklayın.
+              </div>
+            )}
           </div>
         </div>
       )}
