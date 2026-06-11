@@ -527,37 +527,59 @@ function PourSection({
 // ── AI kutusu ─────────────────────────────────────────────────────────────────
 
 function AiBox({ ai }: { ai: AiInsights }) {
+  const [open, setOpen] = useState(false);
+  const { ref, visible } = useScrollReveal(0);
+
   return (
     <div
-      className="bg-[#0e0e1a] border border-[#1e1e2e] rounded-2xl p-5"
-      style={{ borderTopColor: '#00d4ff', borderTopWidth: 2 }}
+      ref={ref}
+      className="rounded-2xl border overflow-hidden"
+      style={{
+        borderColor: 'rgba(0,212,255,0.2)',
+        background: 'rgba(12,12,20,0.7)',
+        opacity:   visible ? 1 : 0,
+        transform: visible ? 'translateY(0)' : 'translateY(20px)',
+        transition: 'opacity 0.4s ease, transform 0.4s ease',
+      }}
     >
-      <div className="flex items-center gap-2 mb-4">
-        <span className="text-base">🤖</span>
-        <h3 className="text-white font-semibold text-sm">AI Analiz Yorumu</h3>
-        <span className="text-[10px] text-[#00d4ff] bg-[#00d4ff]/10 border border-[#00d4ff]/20 px-2 py-0.5 rounded-full font-medium ml-1">
-          Groq AI
-        </span>
-      </div>
+      {/* Header / toggle */}
+      <button
+        onClick={() => setOpen(v => !v)}
+        className="w-full flex items-center gap-3 px-5 py-4 text-left transition-colors"
+        style={{ background: open ? 'rgba(0,212,255,0.03)' : 'transparent' }}
+      >
+        <span className="text-xl flex-shrink-0">🤖</span>
+        <span className="flex-1 font-semibold text-white text-sm">AI Analiz Yorumu</span>
+        <svg
+          width="14" height="14" viewBox="0 0 14 14" fill="none"
+          className={`text-gray-500 transition-transform duration-300 flex-shrink-0 ${open ? 'rotate-180' : ''}`}
+        >
+          <path d="M3 5l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      </button>
 
-      {ai.criticalIssues.length > 0 && (
-        <div className="space-y-2 mb-4">
-          {ai.criticalIssues.map((item, i) => (
-            <div key={i} className="bg-red-500/5 border border-red-500/15 rounded-xl p-3">
-              <div className="flex items-start gap-2">
-                <span className="text-red-400 mt-0.5 flex-shrink-0 text-xs">⚠</span>
-                <div>
-                  <p className="text-red-300 text-xs font-medium leading-relaxed">{item.issue}</p>
-                  <p className="text-gray-400 text-xs mt-1 leading-relaxed">💡 {item.solution}</p>
+      {/* Body */}
+      {open && (
+        <div className="border-t px-5 pb-5 pt-4 space-y-3" style={{ borderColor: 'rgba(0,212,255,0.15)' }}>
+          {ai.criticalIssues.length > 0 && (
+            <div className="space-y-2">
+              {ai.criticalIssues.map((item, i) => (
+                <div key={i} className="bg-red-500/5 border border-red-500/15 rounded-xl p-3">
+                  <div className="flex items-start gap-2">
+                    <span className="text-red-400 mt-0.5 flex-shrink-0 text-xs">⚠</span>
+                    <div>
+                      <p className="text-red-300 text-xs font-medium leading-relaxed">{item.issue}</p>
+                      <p className="text-gray-400 text-xs mt-1 leading-relaxed">💡 {item.solution}</p>
+                    </div>
+                  </div>
                 </div>
-              </div>
+              ))}
             </div>
-          ))}
+          )}
+          <p className="text-[#00d4ff] text-xs italic leading-relaxed">{ai.scoreComment}</p>
+          <p className="text-gray-500 text-[11px] leading-relaxed">📌 {ai.generalAdvice}</p>
         </div>
       )}
-
-      <p className="text-[#00d4ff] text-xs italic mb-2 leading-relaxed">{ai.scoreComment}</p>
-      <p className="text-gray-500 text-[11px] leading-relaxed">📌 {ai.generalAdvice}</p>
     </div>
   );
 }
