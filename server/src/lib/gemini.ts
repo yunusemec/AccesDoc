@@ -1,26 +1,30 @@
 import fetch from 'node-fetch';
 
-const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || '';
-
 async function complete(system: string, user: string): Promise<string> {
-  const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'qwen/qwen3-coder-480b-a35b:free',
-      messages: [
-        { role: 'system', content: system },
-        { role: 'user',   content: user   },
-      ],
-    }),
-  });
+  const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
+  const apiToken = process.env.CLOUDFLARE_API_TOKEN;
+
+  const response = await fetch(
+    `https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/run/@cf/meta/llama-3.3-70b-instruct-fp8-fast`,
+    {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        messages: [
+          { role: 'system', content: system },
+          { role: 'user',   content: user   },
+        ],
+      }),
+    }
+  );
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const data = await response.json() as any;
-  console.log('[openrouter] response:', JSON.stringify(data));
-  return data.choices[0].message.content;
+  console.log('[cloudflare] response:', JSON.stringify(data));
+  return data.result.response;
 }
 
 // ── AI Fix ───────────────────────────────────────────────────────────────────
