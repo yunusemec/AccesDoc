@@ -186,7 +186,7 @@ export default function History() {
 
           {/* Sol — Yeni Analiz butonu */}
           <Link
-            to="/"
+            to="/analyze"
             className="btn-hover flex items-center gap-2 px-4 py-2.5 rounded-xl border border-[#1e1e2e] text-sm font-medium text-gray-300 hover:text-white hover:border-[#00d4ff]/40 flex-shrink-0"
           >
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none">

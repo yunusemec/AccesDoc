@@ -5,6 +5,7 @@ import { useAuth } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import ChatWidget from './components/ChatWidget';
 import Footer from './components/Footer';
+import Landing from './pages/Landing';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -24,19 +25,19 @@ function ScrollToTop() {
   return null;
 }
 
-// Chat widget sadece giriş yapmış kullanıcılara, Home dışındaki sayfalarda gösterilir.
-// Home kendi ChatWidget'ını analysisId bağlamıyla render ediyor.
+// Chat widget sadece giriş yapmış kullanıcılara, Home ve Landing dışındaki sayfalarda gösterilir.
 function GlobalChat() {
   const { user } = useAuth();
   const { pathname } = useLocation();
-  if (!user || pathname === '/') return null;
+  if (!user || pathname === '/' || pathname === '/analyze') return null;
   return <ChatWidget />;
 }
 
-// Footer: Login ve Register sayfaları hariç tüm sayfalarda göster.
+// Footer: Login, Register ve Landing sayfaları hariç tüm sayfalarda göster.
+// Landing kendi footer'ını içeriyor.
 function GlobalFooter() {
   const { pathname } = useLocation();
-  if (pathname === '/login' || pathname === '/register') return null;
+  if (pathname === '/login' || pathname === '/register' || pathname === '/') return null;
   return <Footer />;
 }
 
@@ -56,8 +57,9 @@ export default function App() {
           <Route path="/history/:id" element={<AnalysisDetail />} />
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/terms" element={<Terms />} />
+          <Route path="/" element={<Landing />} />
           <Route
-            path="/"
+            path="/analyze"
             element={
               <ProtectedRoute>
                 <Home />
