@@ -411,7 +411,10 @@ export default function Landing() {
             <span className="block text-white text-5xl md:text-6xl lg:text-7xl mb-1">
               Web erişilebilirliğini
             </span>
-            <span className="block text-6xl md:text-7xl lg:text-8xl font-black">
+            <span
+              className="block text-6xl md:text-7xl lg:text-8xl font-black pb-12"
+              style={{ overflow: 'visible', minHeight: 120 }}
+            >
               <AnimatedWord />
             </span>
           </h1>
