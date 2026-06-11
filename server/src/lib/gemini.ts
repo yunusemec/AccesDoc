@@ -17,6 +17,7 @@ async function complete(system: string, user: string): Promise<string> {
           { role: 'system', content: system },
           { role: 'user',   content: user   },
         ],
+        max_tokens: 2048,
       }),
     }
   );
