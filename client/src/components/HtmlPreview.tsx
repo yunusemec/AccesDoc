@@ -95,113 +95,182 @@ function openOriginal(html: string) {
   if (w) { w.document.write(page); w.document.close(); }
 }
 
-// ── Split diff'i yeni sekmede aç ──────────────────────────────────────────────
+// ── Split diff ────────────────────────────────────────────────────────────────
 
-interface SplitRow {
-  leftNum:   number | null;
-  leftText:  string;
-  leftType:  'del' | 'eq' | 'empty';
+// Adım 1: LCS tabanlı diff — eq / del / ins işlemleri üretir
+type DiffOp = { type: 'eq' | 'del' | 'ins'; line: string };
+
+function diffLines(a: string[], b: string[]): DiffOp[] {
+  const n = a.length, m = b.length;
+  // LCS DP — büyük dosyalar için satır sınırı yok; O(n*m) ama HTML için yeterli
+  const dp: Uint32Array[] = Array.from({ length: n + 1 }, () => new Uint32Array(m + 1));
+  for (let i = n - 1; i >= 0; i--)
+    for (let j = m - 1; j >= 0; j--)
+      dp[i][j] = a[i] === b[j]
+        ? 1 + dp[i + 1][j + 1]
+        : dp[i + 1][j] >= dp[i][j + 1] ? dp[i + 1][j] : dp[i][j + 1];
+
+  const ops: DiffOp[] = [];
+  let i = 0, j = 0;
+  while (i < n || j < m) {
+    if (i < n && j < m && a[i] === b[j]) {
+      ops.push({ type: 'eq',  line: a[i] }); i++; j++;
+    } else if (j < m && (i >= n || dp[i][j + 1] >= dp[i + 1][j])) {
+      ops.push({ type: 'ins', line: b[j] }); j++;
+    } else {
+      ops.push({ type: 'del', line: a[i] }); i++;
+    }
+  }
+  return ops;
+}
+
+// Adım 2: ops → hizalanmış satır çiftleri
+// Bir hunk içindeki del'ler ile ins'ler birebir eşleştirilir;
+// fazla olan taraf karşısına boş satır eklenir.
+interface AlignedRow {
+  leftNum:  number | null;  // null = boş yer tutucu
+  leftLine: string | null;
+  leftKind: 'eq' | 'del' | 'pad';
   rightNum:  number | null;
-  rightText: string;
-  rightType: 'add' | 'eq' | 'empty';
+  rightLine: string | null;
+  rightKind: 'eq' | 'ins' | 'pad';
 }
 
-// Satır satır karşılaştırma: aynıysa eq, farklıysa del/add, kısa taraf boş satırla dolar
-function computeSplitDiff(oldLines: string[], newLines: string[]): SplitRow[] {
-  const maxLen = Math.max(oldLines.length, newLines.length);
-  return Array.from({ length: maxLen }, (_, i) => {
-    const hasL = i < oldLines.length;
-    const hasR = i < newLines.length;
-    const l    = hasL ? oldLines[i] : '';
-    const r    = hasR ? newLines[i] : '';
-    const same = hasL && hasR && l.trim() === r.trim();
-    return {
-      leftNum:   hasL ? i + 1 : null,
-      leftText:  l,
-      leftType:  !hasL ? 'empty' : same ? 'eq' : 'del',
-      rightNum:  hasR ? i + 1 : null,
-      rightText: r,
-      rightType: !hasR ? 'empty' : same ? 'eq' : 'add',
-    } satisfies SplitRow;
-  });
+function alignOps(ops: DiffOp[]): AlignedRow[] {
+  const rows: AlignedRow[] = [];
+  let ln = 1, rn = 1, i = 0;
+
+  while (i < ops.length) {
+    if (ops[i].type === 'eq') {
+      rows.push({
+        leftNum: ln++, leftLine: ops[i].line, leftKind: 'eq',
+        rightNum: rn++, rightLine: ops[i].line, rightKind: 'eq',
+      });
+      i++;
+    } else {
+      // Hunk: ardışık del/ins'leri topla
+      const dels: string[] = [], ins: string[] = [];
+      while (i < ops.length && ops[i].type !== 'eq') {
+        if (ops[i].type === 'del') dels.push(ops[i].line);
+        else                       ins.push(ops[i].line);
+        i++;
+      }
+      const maxH = Math.max(dels.length, ins.length);
+      for (let k = 0; k < maxH; k++) {
+        const hasDel = k < dels.length;
+        const hasIns = k < ins.length;
+        rows.push({
+          leftNum:  hasDel ? ln++ : null,
+          leftLine: hasDel ? dels[k] : null,
+          leftKind: hasDel ? 'del' : 'pad',
+          rightNum:  hasIns ? rn++ : null,
+          rightLine: hasIns ? ins[k] : null,
+          rightKind: hasIns ? 'ins' : 'pad',
+        });
+      }
+    }
+  }
+  return rows;
 }
 
+// Adım 3: Diff'i yeni sekmede iki panelli olarak aç
 function openSplitDiff(original: string, fixed: string) {
   const oldLines = original.split('\n');
   const newLines = fixed.split('\n');
-  const rows     = computeSplitDiff(oldLines, newLines);
+  const ops      = diffLines(oldLines, newLines);
+  const rows     = alignOps(ops);
   const numW     = String(Math.max(oldLines.length, newLines.length)).length;
 
-  const addedCount   = rows.filter(r => r.rightType === 'add').length;
-  const deletedCount = rows.filter(r => r.leftType  === 'del').length;
+  const addedCount   = ops.filter(o => o.type === 'ins').length;
+  const deletedCount = ops.filter(o => o.type === 'del').length;
 
-  const leftRows = rows.map(r => {
-    const bg  = r.leftType === 'del' ? '#2a0d0d' : 'transparent';
-    const col = r.leftType === 'del' ? 'color:#fca5a5' : '';
-    const pfx = r.leftType === 'del'
-      ? `<span style="color:#f87171">-</span>`
-      : `<span style="color:#374151"> </span>`;
-    const txt = r.leftType === 'empty' ? '' : r.leftType === 'del'
-      ? escHtml(r.leftText) : syntaxHighlight(r.leftText);
-    const num = r.leftNum != null ? String(r.leftNum).padStart(numW, ' ') : ' '.repeat(numW);
-    return `<tr style="background:${bg}">
-      <td class="ln">${num}</td><td class="pfx">${pfx}</td>
-      <td class="src" style="${col}">${txt || ' '}</td></tr>`;
-  }).join('');
+  function leftRow(r: AlignedRow): string {
+    const isPad = r.leftKind === 'pad';
+    const isDel = r.leftKind === 'del';
+    const bg    = isDel  ? 'background:#2a0d0d;' : isPad ? 'background:#111118;' : '';
+    const col   = isDel  ? 'color:#fca5a5;'       : '';
+    const pfx   = isDel  ? '<span style="color:#f87171">-</span>'
+                         : '<span style="color:#374151"> </span>';
+    const num   = r.leftNum != null ? String(r.leftNum).padStart(numW, ' ') : ' '.repeat(numW);
+    const txt   = r.leftLine != null
+      ? (isDel ? escHtml(r.leftLine) : syntaxHighlight(r.leftLine))
+      : '';
+    return `<tr style="${bg}"><td class="ln">${num}</td><td class="pfx">${pfx}</td><td class="src" style="${col}">${txt || ' '}</td></tr>`;
+  }
 
-  const rightRows = rows.map(r => {
-    const bg  = r.rightType === 'add' ? '#0d2a0d' : 'transparent';
-    const col = r.rightType === 'add' ? 'color:#86efac' : '';
-    const pfx = r.rightType === 'add'
-      ? `<span style="color:#4ade80">+</span>`
-      : `<span style="color:#374151"> </span>`;
-    const txt = r.rightType === 'empty' ? '' : r.rightType === 'add'
-      ? escHtml(r.rightText) : syntaxHighlight(r.rightText);
-    const num = r.rightNum != null ? String(r.rightNum).padStart(numW, ' ') : ' '.repeat(numW);
-    return `<tr style="background:${bg}">
-      <td class="ln">${num}</td><td class="pfx">${pfx}</td>
-      <td class="src" style="${col}">${txt || ' '}</td></tr>`;
-  }).join('');
+  function rightRow(r: AlignedRow): string {
+    const isPad = r.rightKind === 'pad';
+    const isIns = r.rightKind === 'ins';
+    const bg    = isIns  ? 'background:#0d2a0d;' : isPad ? 'background:#111118;' : '';
+    const col   = isIns  ? 'color:#86efac;'       : '';
+    const pfx   = isIns  ? '<span style="color:#4ade80">+</span>'
+                         : '<span style="color:#374151"> </span>';
+    const num   = r.rightNum != null ? String(r.rightNum).padStart(numW, ' ') : ' '.repeat(numW);
+    const txt   = r.rightLine != null
+      ? (isIns ? escHtml(r.rightLine) : syntaxHighlight(r.rightLine))
+      : '';
+    return `<tr style="${bg}"><td class="ln">${num}</td><td class="pfx">${pfx}</td><td class="src" style="${col}">${txt || ' '}</td></tr>`;
+  }
 
-  const page = `<!DOCTYPE html><html lang="tr"><head><meta charset="UTF-8"><title>Diff Görünümü</title>
-<style>
-  ${PAGE_STYLE}
-  html, body { height:100%; overflow:hidden; }
-  .outer { display:flex; flex-direction:column; height:100%; }
-  .panels { display:flex; flex-direction:row; flex:1; overflow:hidden; }
-  .panel { flex:1; overflow:auto; }
-  .panel-left { border-right:2px solid #0a0a0f; }
-  .panel-hdr { position:sticky; top:0; background:#12121a; border-bottom:1px solid #1e1e2e; padding:4px 8px 4px 16px; font-size:11px; z-index:5; }
-  .hdr-stats { display:flex; gap:8px; align-items:center; }
-  .add-badge { color:#4ade80; background:rgba(74,222,128,0.1); border:1px solid rgba(74,222,128,0.25); padding:1px 8px; border-radius:99px; font-size:11px; }
-  .del-badge { color:#f87171; background:rgba(248,113,113,0.1); border:1px solid rgba(248,113,113,0.25); padding:1px 8px; border-radius:99px; font-size:11px; }
-</style></head><body>
+  const leftRows  = rows.map(leftRow).join('');
+  const rightRows = rows.map(rightRow).join('');
+
+  const DIFF_STYLE = `
+    * { margin:0; padding:0; box-sizing:border-box; }
+    html, body { height:100%; overflow:hidden; background:#0a0a0f; color:#e2e8f0;
+      font-family:'Fira Code','Cascadia Code',Consolas,monospace; font-size:12px; }
+    .outer  { display:flex; flex-direction:column; height:100%; }
+    .topbar { flex-shrink:0; display:flex; justify-content:space-between; align-items:center;
+              background:#12121a; border-bottom:1px solid #1e1e2e; padding:7px 16px; z-index:10; }
+    .topbar-title { color:#9ca3af; font-size:12px; }
+    .badges { display:flex; gap:6px; align-items:center; }
+    .badge-add { color:#4ade80; background:rgba(74,222,128,.12); border:1px solid rgba(74,222,128,.3);
+                 padding:1px 8px; border-radius:99px; font-size:11px; }
+    .badge-del { color:#f87171; background:rgba(248,113,113,.12); border:1px solid rgba(248,113,113,.3);
+                 padding:1px 8px; border-radius:99px; font-size:11px; }
+    .badge-cnt { color:#6b7280; font-size:11px; }
+    .panels { display:flex; flex-direction:row; flex:1; overflow:hidden; }
+    .panel  { flex:1; overflow:auto; min-width:0; }
+    .panel-l { border-right:2px solid #0a0a0f; }
+    .phdr   { position:sticky; top:0; background:#12121a; border-bottom:1px solid #1e1e2e;
+              padding:3px 8px 3px 14px; font-size:11px; z-index:5; }
+    table   { border-collapse:collapse; width:100%; }
+    td.ln   { color:#3d4a5c; text-align:right; padding:0 10px; user-select:none;
+              white-space:pre; vertical-align:top; border-right:1px solid #1a1a2e; min-width:36px; line-height:1.6; }
+    td.pfx  { padding:0 5px; user-select:none; vertical-align:top; line-height:1.6; }
+    td.src  { padding:0 10px; white-space:pre; vertical-align:top; line-height:1.6; }
+    tr:hover td { filter:brightness(1.08); }
+  `;
+
+  const page = `<!DOCTYPE html><html lang="tr"><head><meta charset="UTF-8">
+<title>Split Diff — Orijinal vs Düzeltilmiş</title>
+<style>${DIFF_STYLE}</style></head><body>
 <div class="outer">
-  <div class="hdr">
-    <span class="hdr-t">Split Diff — Orijinal vs Düzeltilmiş</span>
-    <div class="hdr-stats">
-      <span class="add-badge">+${addedCount}</span>
-      <span class="del-badge">-${deletedCount}</span>
-      <span class="hdr-m">${rows.length} satır</span>
+  <div class="topbar">
+    <span class="topbar-title">Split Diff — Orijinal vs Düzeltilmiş</span>
+    <div class="badges">
+      <span class="badge-add">+${addedCount}</span>
+      <span class="badge-del">-${deletedCount}</span>
+      <span class="badge-cnt">${rows.length} satır</span>
     </div>
   </div>
   <div class="panels">
-    <div class="panel panel-left" id="pLeft">
-      <div class="panel-hdr" style="color:#fca5a5">Orijinal — ${oldLines.length} satır</div>
+    <div class="panel panel-l" id="pL">
+      <div class="phdr" style="color:#fca5a5">Orijinal &mdash; ${oldLines.length} satır</div>
       <table><tbody>${leftRows}</tbody></table>
     </div>
-    <div class="panel" id="pRight">
-      <div class="panel-hdr" style="color:#86efac">Düzeltilmiş — ${newLines.length} satır</div>
+    <div class="panel" id="pR">
+      <div class="phdr" style="color:#86efac">Düzeltilmiş &mdash; ${newLines.length} satır</div>
       <table><tbody>${rightRows}</tbody></table>
     </div>
   </div>
 </div>
 <script>
-  const pL = document.getElementById('pLeft');
-  const pR = document.getElementById('pRight');
-  let lock = false;
-  pL.addEventListener('scroll', () => { if (!lock) { lock = true; pR.scrollTop = pL.scrollTop; lock = false; } });
-  pR.addEventListener('scroll', () => { if (!lock) { lock = true; pL.scrollTop = pR.scrollTop; lock = false; } });
+  const pL = document.getElementById('pL');
+  const pR = document.getElementById('pR');
+  let busy = false;
+  pL.addEventListener('scroll', () => { if (!busy) { busy=true; pR.scrollTop=pL.scrollTop; pR.scrollLeft=pL.scrollLeft; busy=false; } });
+  pR.addEventListener('scroll', () => { if (!busy) { busy=true; pL.scrollTop=pR.scrollTop; pL.scrollLeft=pR.scrollLeft; busy=false; } });
 </script>
 </body></html>`;
 
