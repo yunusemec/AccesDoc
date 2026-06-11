@@ -25,73 +25,114 @@ function useScrollReveal(delay = 0) {
 }
 
 // ── Animasyonlu kelimeler ─────────────────────────────────────────────────────
-const WORDS = ['artır', 'ölç', 'geliştir', 'test et'];
+const WORDS  = ['artır', 'ölç', 'geliştir', 'test et'];
 const COLORS = ['#00d4ff', '#a855f7', '#10b981', '#f59e0b'];
 
-// SVG fırça stroke path — wavy underline
-const BRUSH_PATH = 'M2,14 C30,8 70,18 110,12 C150,6 190,16 228,12';
-const PATH_LEN = 240;
+// Sweep süresi (ms) ve bekleme/çıkış süreleri
+const SWEEP_MS = 800;
+const HOLD_MS  = 2500;
+const EXIT_MS  = 400;
 
 function AnimatedWord() {
-  const [idx, setIdx]           = useState(0);
-  const [phase, setPhase]       = useState<'in' | 'out'>('in');
-  const [strokeOffset, setStrokeOffset] = useState(PATH_LEN);
+  const [idx,      setIdx]      = useState(0);
+  // 'sweep': fırça geçiyor | 'show': kelime görünür | 'exit': soluklaşıyor
+  const [phase,    setPhase]    = useState<'sweep' | 'show' | 'exit'>('sweep');
+  const [progress, setProgress] = useState(0); // 0→1 sweep boyunca
 
   useEffect(() => {
-    // animate stroke on mount / word change
-    const t = setTimeout(() => setStrokeOffset(0), 50);
-    return () => clearTimeout(t);
-  }, [idx]);
+    setProgress(0);
+    setPhase('sweep');
 
-  useEffect(() => {
-    const hold   = setTimeout(() => setPhase('out'), 2200);
-    const change = setTimeout(() => {
-      setIdx(i => (i + 1) % WORDS.length);
-      setPhase('in');
-      setStrokeOffset(PATH_LEN);
-    }, 2700);
-    return () => { clearTimeout(hold); clearTimeout(change); };
+    let raf: number;
+    const t0 = performance.now();
+
+    const sweep = (now: number) => {
+      const p = Math.min((now - t0) / SWEEP_MS, 1);
+      setProgress(p);
+      if (p < 1) {
+        raf = requestAnimationFrame(sweep);
+        return;
+      }
+      // Sweep bitti → bekleme
+      setPhase('show');
+      const holdTimer = setTimeout(() => {
+        setPhase('exit');
+        setTimeout(() => {
+          setIdx(i => (i + 1) % WORDS.length);
+        }, EXIT_MS);
+      }, HOLD_MS);
+      // Cleanup için holdTimer'ı saklamak lazım — closure yeterli
+      return () => clearTimeout(holdTimer);
+    };
+
+    raf = requestAnimationFrame(sweep);
+    return () => cancelAnimationFrame(raf);
   }, [idx]);
 
   const word  = WORDS[idx];
   const color = COLORS[idx];
 
+  // clip-path: progress 0→1 iken soldan sağa açılır
+  const clip    = `inset(0 ${Math.round((1 - progress) * 100)}% 0 0)`;
+  // fırça X konumu: container genişliğinin progress%'i
+  const brushX  = `${progress * 100}%`;
+  // çıkış opaklığı
+  const exitOp  = phase === 'exit' ? 0 : 1;
+
   return (
-    <span className="relative inline-block">
+    <span
+      className="relative inline-block"
+      style={{ verticalAlign: 'baseline' }}
+    >
+      {/* Yer tutucu — layout genişliğini sabit tutar */}
+      <span className="invisible" aria-hidden="true">{word}</span>
+
+      {/* Clip ile açılan renkli kelime */}
       <span
+        className="absolute inset-0 whitespace-nowrap"
         style={{
           color,
-          opacity: phase === 'in' ? 1 : 0,
-          transform: phase === 'in' ? 'translateY(0)' : 'translateY(-8px)',
-          transition: 'opacity 0.4s ease, transform 0.4s ease',
-          display: 'inline-block',
-          textShadow: `0 0 40px ${color}55`,
+          clipPath: clip,
+          opacity: exitOp,
+          transition: phase === 'exit' ? `opacity ${EXIT_MS}ms ease` : 'none',
+          textShadow: `0 0 36px ${color}55`,
         }}
       >
         {word}
       </span>
-      {/* SVG fırça çizgisi */}
+
+      {/* Büyüyen alt çizgi */}
       <span
-        className="absolute left-0 right-0"
-        style={{ bottom: -6, opacity: phase === 'in' ? 1 : 0, transition: 'opacity 0.4s ease' }}
-      >
-        <svg
-          viewBox="0 0 232 20"
-          xmlns="http://www.w3.org/2000/svg"
-          style={{ width: '100%', height: 12, overflow: 'visible' }}
+        className="absolute left-0 pointer-events-none"
+        style={{
+          bottom: -5,
+          height: 3,
+          width: brushX,
+          background: color,
+          borderRadius: 2,
+          opacity: exitOp,
+          transition: phase === 'exit' ? `opacity ${EXIT_MS}ms ease` : 'none',
+          boxShadow: `0 0 8px ${color}99`,
+        }}
+      />
+
+      {/* 🖌️ Fırça ikonu — sadece sweep fazında */}
+      {phase === 'sweep' && (
+        <span
+          className="absolute pointer-events-none select-none"
+          style={{
+            left: brushX,
+            top: '50%',
+            fontSize: 28,
+            transform: 'translate(-40%, -65%) scaleX(-1)',
+            filter: `drop-shadow(0 0 6px ${color})`,
+            zIndex: 20,
+            lineHeight: 1,
+          }}
         >
-          <path
-            d={BRUSH_PATH}
-            fill="none"
-            stroke={color}
-            strokeWidth="3.5"
-            strokeLinecap="round"
-            strokeDasharray={PATH_LEN}
-            strokeDashoffset={strokeOffset}
-            style={{ transition: 'stroke-dashoffset 0.55s cubic-bezier(0.4,0,0.2,1)', filter: `drop-shadow(0 0 4px ${color})` }}
-          />
-        </svg>
-      </span>
+          🖌️
+        </span>
+      )}
     </span>
   );
 }
