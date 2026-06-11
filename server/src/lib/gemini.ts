@@ -2,7 +2,11 @@ import fetch from 'node-fetch';
 
 async function complete(system: string, user: string): Promise<string> {
   const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
-  const apiToken = process.env.CLOUDFLARE_API_TOKEN;
+  const apiToken  = process.env.CLOUDFLARE_API_TOKEN;
+
+  if (!accountId || !apiToken) {
+    throw new Error('[cloudflare] CLOUDFLARE_ACCOUNT_ID veya CLOUDFLARE_API_TOKEN env değişkeni eksik');
+  }
 
   const response = await fetch(
     `https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/run/@cf/meta/llama-3.3-70b-instruct-fp8-fast`,
@@ -24,7 +28,12 @@ async function complete(system: string, user: string): Promise<string> {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const data = await response.json() as any;
-  console.log('[cloudflare] response:', JSON.stringify(data));
+  console.log('[cloudflare] status:', response.status, 'response:', JSON.stringify(data).slice(0, 300));
+
+  if (!data.success) {
+    throw new Error(`[cloudflare] API hatası: ${JSON.stringify(data.errors ?? data)}`);
+  }
+
   return data.result.response;
 }
 
