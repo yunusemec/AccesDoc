@@ -413,7 +413,7 @@ export default function Landing() {
             </span>
             <span
               className="text-6xl md:text-7xl lg:text-8xl font-black"
-              style={{ display: 'block', overflow: 'visible', paddingBottom: '8rem', paddingTop: '0.5rem', paddingRight: '6rem', lineHeight: 1.6 }}
+              style={{ display: 'block', overflow: 'visible', paddingBottom: '5rem', paddingTop: '0.5rem', paddingRight: '4rem', lineHeight: 1.5 }}
             >
               <AnimatedWord />
             </span>
